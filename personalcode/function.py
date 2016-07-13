@@ -1,6 +1,3 @@
-# coding:utf8
-
-#from PIL import Image
 import pytesseract,os,gc
 from PIL import Image, ImageStat
 import StringIO, cStringIO
@@ -15,7 +12,84 @@ import requests_cache
 from lxml import etree
 #import cv2
 import numpy as np
-#from matplotlib import pyplot as plt
+
+def recogonize_char(image_dict,characteristiclibs):
+    left_9=characteristiclibs['9']
+    left_2=characteristiclibs['2']
+    left_4=characteristiclibs['4']
+    left_5=characteristiclibs['5']
+    left_7=characteristiclibs['7']
+    left_0=characteristiclibs['0']
+    left_K=characteristiclibs['K']
+    left_R=characteristiclibs['R']
+    left_poundsymbol=characteristiclibs['poundsymbol']
+    left_eurosymbol=characteristiclibs['eurosymbol']
+    #left_0=characteristiclibs['0']
+    # 2 4 5 6 7 0 euro pound KR
+    if image_dict['the_number_of_columns']<=2:
+        left_1=characteristiclibs['1']
+        #
+        left_comma=characteristiclibs['comma']
+        if image_dict['the_number_of_columns']==left_1['the_number_of_columns']:
+            if image_dict['the_number_of_pixel_in_each_row']=left_1['the_number_of_pixel_in_each_row'] and image_dict['the_number_of_pixel_in_each_column']=left_1['the_number_of_pixel_in_each_column']:
+                return '1'
+        elif image_dict['the_number_of_columns']==left_comma['the_number_of_columns']:
+
+            if image_dict['the_number_of_pixel_in_each_row']=left_comma['the_number_of_pixel_in_each_row'] and image_dict['the_number_of_pixel_in_each_column']=left_comma['the_number_of_pixel_in_each_column']:
+                return ','
+    elif image_dict['the_number_of_columns']==3:
+        left_minus=characteristiclibs['minus']
+        if image_dict['the_number_of_pixel_in_each_row']=left_minus['the_number_of_pixel_in_each_row'] and image_dict['the_number_of_pixel_in_each_column']=left_minus['the_number_of_pixel_in_each_column']:
+            return '-'
+            break
+    elif image_dict['the_number_of_columns']==5:
+        left_dollarsymbol=characteristiclibs['dollarsymbol']
+        if image_dict['the_number_of_pixel_in_each_row']=left_dollarsymbol['the_number_of_pixel_in_each_row'] and image_dict['the_number_of_pixel_in_each_column']=left_dollarsymbol['the_number_of_pixel_in_each_column']:
+            return '$'
+    elif image_dict['the_number_of_columns']==4:
+        left_8=characteristiclibs['8']
+        if image_dict['the_number_of_pixel_in_each_column']=left_8['the_number_of_pixel_in_each_column']:
+            if image_dict['the_number_of_pixel_in_each_row']=left_8['the_number_of_pixel_in_each_row']:
+                return '8'
+            else:
+                left_3=characteristiclibs['3']
+                if image_dict['the_number_of_pixel_in_each_row']=left_3['the_number_of_pixel_in_each_row']:
+                    return '3'
+        elif image_dict['the_number_of_pixel_in_each_column']=left_9['the_number_of_pixel_in_each_column']:
+                if image_dict['the_number_of_pixel_in_each_row']=left_9['the_number_of_pixel_in_each_row']:
+                    return '9'
+        elif image_dict['the_number_of_pixel_in_each_column']=left_2['the_number_of_pixel_in_each_column']:
+                if image_dict['the_number_of_pixel_in_each_row']=left_2['the_number_of_pixel_in_each_row']:
+                    return '2'
+        elif image_dict['the_number_of_pixel_in_each_column']=left_4['the_number_of_pixel_in_each_column']:
+                if image_dict['the_number_of_pixel_in_each_row']=left_4['the_number_of_pixel_in_each_row']:
+                    return '4'
+        elif image_dict['the_number_of_pixel_in_each_column']=left_6['the_number_of_pixel_in_each_column']:
+                if image_dict['the_number_of_pixel_in_each_row']=left_6['the_number_of_pixel_in_each_row']:
+                    return '6'
+        elif image_dict['the_number_of_pixel_in_each_column']=left_5['the_number_of_pixel_in_each_column']:
+                if image_dict['the_number_of_pixel_in_each_row']=left_5['the_number_of_pixel_in_each_row']:
+                    return '5'
+        elif image_dict['the_number_of_pixel_in_each_column']=left_7['the_number_of_pixel_in_each_column']:
+                if image_dict['the_number_of_pixel_in_each_row']=left_7['the_number_of_pixel_in_each_row']:
+                    return '7'
+        elif image_dict['the_number_of_pixel_in_each_column']=left_0['the_number_of_pixel_in_each_column']:
+                if image_dict['the_number_of_pixel_in_each_row']=left_0['the_number_of_pixel_in_each_row']:
+                    return '0'
+        elif image_dict['the_number_of_pixel_in_each_column']=left_K['the_number_of_pixel_in_each_column']:
+                if image_dict['the_number_of_pixel_in_each_row']=left_K['the_number_of_pixel_in_each_row']:
+                    return 'K'
+        elif image_dict['the_number_of_pixel_in_each_column']=left_R['the_number_of_pixel_in_each_column']:
+                if image_dict['the_number_of_pixel_in_each_row']=left_R['the_number_of_pixel_in_each_row']:
+                    return 'R'
+        elif image_dict['the_number_of_pixel_in_each_column']=left_poundsymbol['the_number_of_pixel_in_each_column']:
+                if image_dict['the_number_of_pixel_in_each_row']=left_poundsymbol['the_number_of_pixel_in_each_row']:
+                    return '£'
+        elif image_dict['the_number_of_pixel_in_each_column']=left_eurosymbol['the_number_of_pixel_in_each_column']:
+                if image_dict['the_number_of_pixel_in_each_row']=left_eurosymbol['the_number_of_pixel_in_each_row']:
+                    return 'eur'
+
+
 
 
 def image_to_string(img, cleanup=True, plus=''):
@@ -501,138 +575,3 @@ def characteristicfunction(character_image,setup=False,name='null',path='null'):
             f.write(str(characteristicvalue['the_number_of_pixel_in_each_column'])+':')
             f.write(str(characteristicvalue['the_number_of_pixel_in_each_row'])+'\n')
     return characteristicvalue
-
-if __name__ == '__main__':
-    gc.enable()
-    image_file='dailypledges-5.png'
-    #image_file = '/Users/sn0wfree/Dropbox/BitTorrentSync/kickstarterscrapy/ocrforkicktraq/dict/pledgechart5.tif'
-    image=Image.open(image_file).convert("RGBA")
-    path='/Users/sn0wfree/Dropbox/BitTorrentSync/kickstarterscrapy/ocrforkicktraq/dict'
-
-    #characters_dict=loading_characters_dictionary(path)
-    #change the color
-    image,axis=dailypledges_chart_bottom_confirm(image)
-    #image=xxx(image)
-    #image.show()
-
-    roll = image.transpose(Image.ROTATE_270)
-    roll_axis = axis.transpose(Image.ROTATE_270)
-    print roll_axis.size[0],roll_axis.size[1]
-
-
-    #roll.show()
-    dailydata=forsilceandsearchrowsandcolums(roll,roll_axis)
-    #print gap
-    characteristiclibs=read_characteristic_lib(path+'/characteristic.txt')
-    #dailydata[0].show()
-    liss={}
-    for day in list(dailydata):
-        day_char=splitcolumtocharacter(dailydata[day])
-        pre_process=characteristicfunction(day_char[0])
-        if pre_process['the_number_of_rows']>=10 and pre_process['the_number_of_columns'] >= 7:
-            day_char[0]=day_char[0].transpose(Image.ROTATE_90)
-        else:
-            day_text=''
-            for chars in day_char:
-                char_d = characteristicfunction(chars)
-                char=recogonize_char(char_d,characteristiclibs)
-                day_text=day_text+char
-        liss[day]=day_text
-
-
-
-
-def recogonize_char(image_dict,characteristiclibs):
-    left_9=characteristiclibs['9']
-    left_2=characteristiclibs['2']
-    left_4=characteristiclibs['4']
-    left_5=characteristiclibs['5']
-    left_7=characteristiclibs['7']
-    left_0=characteristiclibs['0']
-    left_K=characteristiclibs['K']
-    left_R=characteristiclibs['R']
-    left_poundsymbol=characteristiclibs['poundsymbol']
-    left_eurosymbol=characteristiclibs['eurosymbol']
-    #left_0=characteristiclibs['0']
-    # 2 4 5 6 7 0 euro pound KR
-    if image_dict['the_number_of_columns']<=2:
-        left_1=characteristiclibs['1']
-        #
-        left_comma=characteristiclibs['comma']
-        if image_dict['the_number_of_columns']==left_1['the_number_of_columns']:
-            if image_dict['the_number_of_pixel_in_each_row']=left_1['the_number_of_pixel_in_each_row'] and image_dict['the_number_of_pixel_in_each_column']=left_1['the_number_of_pixel_in_each_column']:
-                return '1'
-        elif image_dict['the_number_of_columns']==left_comma['the_number_of_columns']:
-
-            if image_dict['the_number_of_pixel_in_each_row']=left_comma['the_number_of_pixel_in_each_row'] and image_dict['the_number_of_pixel_in_each_column']=left_comma['the_number_of_pixel_in_each_column']:
-                return ','
-    elif image_dict['the_number_of_columns']==3:
-        left_minus=characteristiclibs['minus']
-        if image_dict['the_number_of_pixel_in_each_row']=left_minus['the_number_of_pixel_in_each_row'] and image_dict['the_number_of_pixel_in_each_column']=left_minus['the_number_of_pixel_in_each_column']:
-            return '-'
-            break
-    elif image_dict['the_number_of_columns']==5:
-        left_dollarsymbol=characteristiclibs['dollarsymbol']
-        if image_dict['the_number_of_pixel_in_each_row']=left_dollarsymbol['the_number_of_pixel_in_each_row'] and image_dict['the_number_of_pixel_in_each_column']=left_dollarsymbol['the_number_of_pixel_in_each_column']:
-            return '$'
-    elif image_dict['the_number_of_columns']==4:
-        left_8=characteristiclibs['8']
-        if image_dict['the_number_of_pixel_in_each_column']=left_8['the_number_of_pixel_in_each_column']:
-            if image_dict['the_number_of_pixel_in_each_row']=left_8['the_number_of_pixel_in_each_row']:
-                return '8'
-            else:
-                left_3=characteristiclibs['3']
-                if image_dict['the_number_of_pixel_in_each_row']=left_3['the_number_of_pixel_in_each_row']:
-                    return '3'
-        elif image_dict['the_number_of_pixel_in_each_column']=left_9['the_number_of_pixel_in_each_column']:
-                if image_dict['the_number_of_pixel_in_each_row']=left_9['the_number_of_pixel_in_each_row']:
-                    return '9'
-        elif image_dict['the_number_of_pixel_in_each_column']=left_2['the_number_of_pixel_in_each_column']:
-                if image_dict['the_number_of_pixel_in_each_row']=left_2['the_number_of_pixel_in_each_row']:
-                    return '2'
-        elif image_dict['the_number_of_pixel_in_each_column']=left_4['the_number_of_pixel_in_each_column']:
-                if image_dict['the_number_of_pixel_in_each_row']=left_4['the_number_of_pixel_in_each_row']:
-                    return '4'
-        elif image_dict['the_number_of_pixel_in_each_column']=left_6['the_number_of_pixel_in_each_column']:
-                if image_dict['the_number_of_pixel_in_each_row']=left_6['the_number_of_pixel_in_each_row']:
-                    return '6'
-        elif image_dict['the_number_of_pixel_in_each_column']=left_5['the_number_of_pixel_in_each_column']:
-                if image_dict['the_number_of_pixel_in_each_row']=left_5['the_number_of_pixel_in_each_row']:
-                    return '5'
-        elif image_dict['the_number_of_pixel_in_each_column']=left_7['the_number_of_pixel_in_each_column']:
-                if image_dict['the_number_of_pixel_in_each_row']=left_7['the_number_of_pixel_in_each_row']:
-                    return '7'
-        elif image_dict['the_number_of_pixel_in_each_column']=left_0['the_number_of_pixel_in_each_column']:
-                if image_dict['the_number_of_pixel_in_each_row']=left_0['the_number_of_pixel_in_each_row']:
-                    return '0'
-        elif image_dict['the_number_of_pixel_in_each_column']=left_K['the_number_of_pixel_in_each_column']:
-                if image_dict['the_number_of_pixel_in_each_row']=left_K['the_number_of_pixel_in_each_row']:
-                    return 'K'
-        elif image_dict['the_number_of_pixel_in_each_column']=left_R['the_number_of_pixel_in_each_column']:
-                if image_dict['the_number_of_pixel_in_each_row']=left_R['the_number_of_pixel_in_each_row']:
-                    return 'R'
-        elif image_dict['the_number_of_pixel_in_each_column']=left_poundsymbol['the_number_of_pixel_in_each_column']:
-                if image_dict['the_number_of_pixel_in_each_row']=left_poundsymbol['the_number_of_pixel_in_each_row']:
-                    return '£'
-        elif image_dict['the_number_of_pixel_in_each_column']=left_eurosymbol['the_number_of_pixel_in_each_column']:
-                if image_dict['the_number_of_pixel_in_each_row']=left_eurosymbol['the_number_of_pixel_in_each_row']:
-                    return 'eur'
-
-
-
-
-             # 2 4 5 6 7 0 euro pound KR
-
-
-
-
-
-
-
-
-        #enter char recogonize
-    ##recognize_process
-
-    #print days
-    #days[0].show()
-    #print days[0].size[0],days[0].size[1]
