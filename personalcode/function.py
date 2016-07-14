@@ -5,8 +5,6 @@ import tweepy
 import time
 import datetime
 import pandas as pd
-from urllib2 import Request, urlopen, URLError
-import urllib2
 import requests
 import requests_cache
 from lxml import etree
@@ -93,7 +91,6 @@ def recogonize_char(image_dict,characteristiclibs):
 
 
 def image_to_string(img, cleanup=True, plus=''):
-
     os.popen('tesseract ' + img + ' ' + img + ' ' + plus)
     with open(img + '.txt','r') as txt:
         text=txt.read()
@@ -162,7 +159,6 @@ def dailypledges_chart_bottom_confirm(image):
 
 def rollazero(image,box):
     (x1,y1,x2,y2)=box
-
     rebox=((x1+x2)/2-(y2-y1)/2,y2-(x2-x1),(x1+x2)/2-(y2-y1)/2+(y2-y1),y2)
     #print box,rebox
     region = image.crop(box)
@@ -391,7 +387,6 @@ def loading_characters_dictionary(path):
     characters_dict={}
     charactersdict=os.listdir(path)
     for files in charactersdict:
-        #print files
         name=files.split('.')[0]
 
         files_image=path+'/'+files
@@ -402,7 +397,6 @@ def loading_characters_dictionary(path):
             pass
     return characters_dict
 
-#def loading_characteristic_library():
 
 
 
@@ -458,7 +452,6 @@ def charactersearchprocessforchart(image,characters_dict, opt=True,types='pledge
             break
     return dd
 
-#def corealgotithm():
 
 
 def read_whole_line(days):
@@ -575,3 +568,8 @@ def characteristicfunction(character_image,setup=False,name='null',path='null'):
             f.write(str(characteristicvalue['the_number_of_pixel_in_each_column'])+':')
             f.write(str(characteristicvalue['the_number_of_pixel_in_each_row'])+'\n')
     return characteristicvalue
+
+
+
+
+if __name__ == '__main__':
