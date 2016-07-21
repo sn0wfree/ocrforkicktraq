@@ -16,7 +16,6 @@ import numpy as np
 
 
 if __name__ == '__main__':  
-
     gc.enable()
     image_file='dailypledges-5.png'
     image=Image.open(image_file).convert("RGBA")

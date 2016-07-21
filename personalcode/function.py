@@ -87,9 +87,6 @@ def recogonize_char(image_dict,characteristiclibs):
                 if image_dict['the_number_of_pixel_in_each_row']=left_eurosymbol['the_number_of_pixel_in_each_row']:
                     return 'eur'
 
-
-
-
 def image_to_string(img, cleanup=True, plus=''):
     os.popen('tesseract ' + img + ' ' + img + ' ' + plus)
     with open(img + '.txt','r') as txt:
@@ -97,7 +94,6 @@ def image_to_string(img, cleanup=True, plus=''):
     if cleanup:
         os.remove(img + '.txt')
     return text
-
 
 def dailypledges_lable_confirm(image):
     lable_bottom_box=(57,213,72,225)
@@ -139,8 +135,6 @@ def chart_confirm(chartimage,type,linewidth='default'):
     #else:
         #print 'entering to calculating linewidth model'
     return chartimage
-
-
 
 def dailypledges_chart_bottom_confirm(image):
     mainchart_coordinate_axis_box=(78,221,920,222)
@@ -244,7 +238,6 @@ def scanaxis(image):
             dicts[i]=sumpix
     return dicts
 
-
 def cropdailybar(dicts,dicts_axis,image):
     a=sorted(list(dicts))
     dayslabel=sorted(list(dicts_axis))
@@ -313,8 +306,6 @@ def forsilceandsearchrowsandcolums(image,image_axis):
     #days=splitcolumtocharacter(daily)
     return dailyimage
 
-
-
 def splitcolumtocharacter(dailydata5):
     character={}
     pixels=dailydata5.load()
@@ -356,7 +347,6 @@ def splitcolumtocharacter(dailydata5):
         characters[i]=locals()['day%s'%i]
     return characters
 
-
 def pledge_recognitionzeroloaction(image):
     #print type(image_file)
     lable_bottom=dailypledges_lable_confirm(image)
@@ -396,10 +386,6 @@ def loading_characters_dictionary(path):
         else:
             pass
     return characters_dict
-
-
-
-
 
 def charactersearchprocessforchart(image,characters_dict, opt=True,types='pledge'):
     dd='cannot recognize'
@@ -452,8 +438,6 @@ def charactersearchprocessforchart(image,characters_dict, opt=True,types='pledge
             break
     return dd
 
-
-
 def read_whole_line(days):
     for i in xrange(sorted(list(days))):
         readline=''
@@ -463,10 +447,6 @@ def read_whole_line(days):
         else:
             readline+='meet Error'
     return realine
-
-
-
-
 
 def read_characteristic_lib(file):
 
@@ -507,8 +487,6 @@ def read_characteristic_lib(file):
             characteristicvalue['the_number_of_pixel_in_each_column']=the_number_of_pixel_in_each_column
             characteristiclibs[name]=characteristicvalue
     return characteristiclibs
-
-
 
 def characteristicfunction(character_image,setup=False,name='null',path='null'):
     def sumacharacteristicforsingleroworcolumn(sum_row):
@@ -568,8 +546,5 @@ def characteristicfunction(character_image,setup=False,name='null',path='null'):
             f.write(str(characteristicvalue['the_number_of_pixel_in_each_column'])+':')
             f.write(str(characteristicvalue['the_number_of_pixel_in_each_row'])+'\n')
     return characteristicvalue
-
-
-
 
 if __name__ == '__main__':

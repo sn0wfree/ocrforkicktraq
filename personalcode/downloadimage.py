@@ -1,3 +1,12 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# Copyright by Lin Lu 2016
+#-----------------------------------------------------------------------------------------------
+'''
+this code is for my dissertation.
+'''
+#-----------------------------------------------------------------------------------------------
+
 from urllib2 import Request, urlopen, URLError
 import time
 import urllib2
@@ -12,9 +21,10 @@ import datetime
 import time
 import threading
 import Queue
+#import celery
 
 #from PIL import Image
-import pytesseract
+#import pytesseract
 from PIL import Image
 
 def read_a_file(file):
@@ -41,6 +51,7 @@ def webscraper_png(img_url):
             print 'Error code: ', e.code
 
     return img
+
 def savingimage(img,path,project_ID,typefile):
 
     if os.path.isdir(path +'/%s'%project_ID):
@@ -49,7 +60,6 @@ def savingimage(img,path,project_ID,typefile):
         os.makedirs(path +'/%s'%project_ID)
     with open(path+ '/%s/'%project_ID +typefile,'wb') as png:
         png.write(img)
-
 
 def obtain_kicktraqurl(kickstarterurl):
     if kickstarterurl !='':
@@ -61,7 +71,6 @@ def obtain_kicktraqurl(kickstarterurl):
     else:
         kicktraq_url='Error'
     return kicktraq_url
-
 
 #image_file = 'dailypledges.png'
 #im = Image.open(image_file)
@@ -77,12 +86,11 @@ def generateimageurl(kickstraqurl,pngfile):
 
     return kicktraq_imageurl
 
-
-
 def readacsv(file):
     with open(file,'r+') as f:
         w=pd.read_csv(file,skip_footer=1,engine='python')
     return w
+
 def optimalforcollected(collected_file,target_file):
     collected_dict={}
     target_dict={}
@@ -120,7 +128,22 @@ def writeacsvprocess(file,headers,item):
             project_data_csv.writeheader()
         project_data_csv.writerows(item)
 
-def savingallimageforeachproject(key):
+def progress_test(counts,lenfile,speed,w):
+    bar_length=30
+    eta=time.time()+w
+    precent =counts/float(lenfile)
+
+    ETA=datetime.datetime.fromtimestamp(eta).datatime()
+    hashes = '#' * int(precent * bar_length)
+    spaces = ' ' * (bar_length - len(hashes))
+    sys.stdout.write("""\r%d%%|%s|read %d projects|ETA: %s """ % (precent*100,hashes + spaces,counts,ETA))
+
+    #sys.stdout.write("\rthis spider has already read %d projects, speed: %.4f/projects" % (counts,f2-f1))
+
+    #sys.stdout.write("\rPercent: [%s] %d%%,remaining time: %.4f mins"%(hashes + spaces,precent,w))
+    sys.stdout.flush()
+
+def savingallimageforeachproject(key,file1):
     global collected_file
     global savingdatapath
     global pngfilekicktraqurl
@@ -129,36 +152,35 @@ def savingallimageforeachproject(key):
     headers=['Project_ID','url']
     global totalitem_kicktraqurl
     global counts
-
     if key !='':
         item_kicktraqurl={}
         for i in type_png:
             locals()['kickstraq%s'%i]=generateimageurl(pngfilekicktraqurl[key],i)
-            if locals()['kickstraq%s'%i] !='Error':
-                img_daily=webscraper_png(locals()['kickstraq%s'%i])
-                savingimage(img_daily,savingdatapath,key,i)
+
+            locals()['img_daily%s'%i]=webscraper_png(locals()['kickstraq%s'%i])
+            savingimage(img_daily,savingdatapath_dict,key,i)
+
         item_kicktraqurl['Project_ID']=key
         item_kicktraqurl['url']=pngfilekickstarterurl[key]
         totalitem_kicktraqurl.append(item_kicktraqurl)
+        time.sleep(1+1/(len(totalitem_kicktraqurl)+1))
         if len(totalitem_kicktraqurl)>50:
             writeacsvprocess(collected_file,headers,totalitem_kicktraqurl)
             totalitem_kicktraqurl=[]
-            gc.collect()
+
         f2 = time.time()
-        w=(len(file)-counts)*(f2-f1)
-        sys.stdout.write("\rthis spider has already read %d projects, speed: %.4f/projects and remaining time: %.4f mins" % (counts,f2-f1,w))
+        w=(len(file1)-counts)*(f2-f1)/y
+        progress_test(counts,len(file1),f2-f1,w)
+        #sys.stdout.write("\rthis spider has already read %d projects, speed: %.4f/projects and remaining time: %.4f mins" % (counts,f2-f1,w))
         #sys.stdout.write("\rthis spider has already read %d projects" % (counts))
-        sys.stdout.flush()
-
-
+        #sys.stdout.flush()
+        gc.collect()
     writeacsvprocess(collected_file,headers,totalitem_kicktraqurl)
 
 def zipafilefordelivery(file,target):
     with zipfile.ZipFile(file, 'w',zipfile.ZIP_DEFLATED) as z:
         z.write(target)
         z.close
-
-
 
 def getAttachment(attachmentFilePath):
     contentType, encoding = mimetypes.guess_type(attachmentFilePath)
@@ -184,6 +206,7 @@ def getAttachment(attachmentFilePath):
 
     attachment.add_header('Content-Disposition', 'attachment',filename=os.path.basename(attachmentFilePath))
     return attachment
+
 def sendmailtodelivery(mail_username,mail_password,to_addrs,*attachmentFilePaths):
     from_addr = mail_username
     # HOST & PORT
@@ -221,18 +244,6 @@ def sendmailtodelivery(mail_username,mail_password,to_addrs,*attachmentFilePaths
     smtp.sendmail(from_addr,to_addrs,msg.as_string())
     smtp.quit()
 
-
-
-
-gc.enable()
-totalitem_kicktraqurl=[]
-
-target_file='/Users/sn0wfree/Dropbox/BitTorrentSync/kickstarterscrapy/ocrforkicktraq/target/target.csv'
-collected_file='/Users/sn0wfree/Dropbox/BitTorrentSync/kickstarterscrapy/ocrforkicktraq/target/collected.csv'
-savingdatapath='/Users/sn0wfree/Dropbox/BitTorrentSync/kickstarterscrapy/ocrforkicktraq/data'
-pngfilekickstarterurl = optimalforcollected(collected_file,target_file)
-
-queue = Queue.Queue()
 class ThreadClass(threading.Thread):
     def __init__(self, queue):
         threading.Thread.__init__(self)
@@ -240,10 +251,11 @@ class ThreadClass(threading.Thread):
     def run(self):
         while 1:
             (target) = self.queue.get()
-            savingallimageforeachproject(target)
+            savingallimageforeachproject(target,file1)
 
             #time.sleep(1/10)
             self.queue.task_done()
+
 
 def main(pngfilekicktraqurl,y):
 
@@ -256,46 +268,51 @@ def main(pngfilekicktraqurl,y):
         queue.put(key)
     queue.join()
 
-#someurl='https://www.kickstarter.com/projects/822494155/the-marshall-project-reports-on-life-inside?ref=category_newest'
-pngfilekicktraqurl={}
-y=4
-for key in pngfilekickstarterurl:
-    #change from kcikstarter url to kicktraqurl
-    kicktraq_url=obtain_kicktraqurl(pngfilekickstarterurl[key])
-    #group kicktraqurl
-    pngfilekicktraqurl[key]=kicktraq_url
-#if want to save all picture , run following line code for saving
-main(pngfilekicktraqurl,y)
-#creat a intermediary folder
-dailypledges_png = 'dailypledges.png'
-dailybackers_png='dailybackers.png'
-dailycomments_png='dailycomments.png'
-type_png=['dailypledges.png','dailybackers.png','dailycomments.png']
+if __name__=='__main__':
+    gc.enable()
+    queue = Queue.Queue()
+    totalitem_kicktraqurl=[]
+
+    #savingdatapath='/Users/sn0wfree/Dropbox/BitTorrentSync/kickstarterscrapy/ocrforkicktraq/data'
+    savingdatapath=input('please input the saving data path:')
+    savingdatapath_dict=savingdatapath+'/file'
+    target_file= savingdatapath+'/'+'target.csv'
+    #target_file=input('please input the target_file path:')
+    collected_file=savingdatapath+'/'+'collected.csv'
+    pngfilekickstarterurl = optimalforcollected(collected_file,target_file)
+    #someurl='https://www.kickstarter.com/projects/822494155/the-marshall-project-reports-on-life-inside?ref=category_newest'
+    pngfilekicktraqurl={}
+    y=4
+    for key in pngfilekickstarterurl:
+        #change from kcikstarter url to kicktraqurl
+        kicktraq_url=obtain_kicktraqurl(pngfilekickstarterurl[key])
+        #group kicktraqurl
+        pngfilekicktraqurl[key]=kicktraq_url
+    #if want to save all picture , run following line code for saving
+    main(pngfilekicktraqurl,y)
+    #creat a intermediary folder
+    print 'download pic process completed'
+
+
+
+    #dailypledges_png = 'dailypledges.png'
+    #dailybackers_png='dailybackers.png'
+    #dailycomments_png='dailycomments.png'
+    #type_png=['dailypledges.png','dailybackers.png','dailycomments.png']
 
 
 
 
-#target=  publicpath +'/project_data.csv'
-#now =  datetime.datetime.today()
-#pathfile=publicpath+ '/%s.zip' % now
-#print 'compress process completed'
-#zipafilefordelivery(pathfile,target)
+    #target=
+    #now =  datetime.datetime.today()
+    #pathfile=savingdatapath+ '/%s.zip' % now
+    #print 'compress process completed'
+    #zipafilefordelivery(pathfile,target)
 
-#print 'begin sending email'
-#mail_username='linlu19920815@gmail.com'
-#mail_password='19920815'
-#to_addrs="snowfreedom0815@gmail.com"
-#attachmentFilePaths=pathfile
-#sendmailtodelivery(mail_username,mail_password,to_addrs,attachmentFilePaths)
-#print 'email sent'
-
-gc.collect()
-
-
-
-
-
-#print type(img_dailypledges)
-
-#print type(im)
-#print im
+    #print 'begin sending email'
+    #mail_username='linlu19920815@gmail.com'
+    #mail_password='19920815'
+    #to_addrs="snowfreedom0815@gmail.com"
+    #attachmentFilePaths=pathfile
+    #sendmailtodelivery(mail_username,mail_password,to_addrs,attachmentFilePaths)
+    #print 'email sent'
