@@ -12,7 +12,7 @@ import time
 import urllib2
 import requests
 from lxml import etree
-import re,os,gc,os
+import os,gc,sys
 import pandas as pd
 import unicodecsv
 import csv
@@ -22,10 +22,12 @@ import time
 import threading
 import Queue
 #import celery
-
-#from PIL import Image
-#import pytesseract
 from PIL import Image
+
+queue = Queue.Queue()
+
+mutex = threading.Lock()
+
 
 def read_a_file(file):
     with open(file,'r') as f:
@@ -37,18 +39,22 @@ def write_a_file(file,item):
         for i in xrange(0,lenitem):
             f.write(item[i])
 
+#@celery.task(bind=True,max_retries=5,default_retry_delay=0.1 * 6)
 def webscraper_png(img_url):
     #root_url = 'https://www.kickstarter.com'
     try:
           img = urllib2.urlopen(img_url).read()
     except URLError as e:
         if hasattr(e, 'reason'):
-            print 'We failed to reach a server.'
-            print 'Reason: ', e.reason
+
+            #print 'We failed to reach a server.'
+            #print 'Reason: ', e.reason
+            pass
 
         elif hasattr(e, 'code'):
-            print 'The server couldn\'t fulfill the request.'
-            print 'Error code: ', e.code
+            #print 'The server couldn\'t fulfill the request.'
+            #print 'Error code: ', e.code
+            pass
 
     return img
 
@@ -108,15 +114,15 @@ def optimalforcollected(collected_file,target_file):
         target_dict[target['Project_ID'][i]]=target['url'][i]
     a=list(target_dict)
     b=list(collected_dict)
-    print len(b),len(a),a[1]
+    #print len(b),len(a),a[1]
     c=list(set(a)-set(b))
-    print len(c),type(c),c[1]
+    #print len(c),type(c),c[1]
     for key in c:
         search_dict[key]=target_dict[key]
     return search_dict
 
 def writeacsvprocess(file,headers,item):
-    with open(file,'r+') as project_data:
+    with open(file,'r') as project_data:
         project_data_read_csv = unicodecsv.reader(project_data,headers)
         if not headers in project_data_read_csv:
             status=0
@@ -133,7 +139,7 @@ def progress_test(counts,lenfile,speed,w):
     eta=time.time()+w
     precent =counts/float(lenfile)
 
-    ETA=datetime.datetime.fromtimestamp(eta).datatime()
+    ETA=datetime.datetime.fromtimestamp(eta)
     hashes = '#' * int(precent * bar_length)
     spaces = ' ' * (bar_length - len(hashes))
     sys.stdout.write("""\r%d%%|%s|read %d projects|ETA: %s """ % (precent*100,hashes + spaces,counts,ETA))
@@ -143,31 +149,41 @@ def progress_test(counts,lenfile,speed,w):
     #sys.stdout.write("\rPercent: [%s] %d%%,remaining time: %.4f mins"%(hashes + spaces,precent,w))
     sys.stdout.flush()
 
-def savingallimageforeachproject(key,file1):
+def savingallimageforeachproject(key):
     global collected_file
-    global savingdatapath
+
+    global savingdatapath_dict
     global pngfilekicktraqurl
     global pngfilekickstarterurl
     type_png=['dailypledges.png','dailybackers.png','dailycomments.png']
     headers=['Project_ID','url']
     global totalitem_kicktraqurl
-    global counts
+    global counts,collected_key
+
+
+
+    f1 = time.time()
     if key !='':
         item_kicktraqurl={}
-        for i in type_png:
-            locals()['kickstraq%s'%i]=generateimageurl(pngfilekicktraqurl[key],i)
-
-            locals()['img_daily%s'%i]=webscraper_png(locals()['kickstraq%s'%i])
-            savingimage(img_daily,savingdatapath_dict,key,i)
-
         item_kicktraqurl['Project_ID']=key
         item_kicktraqurl['url']=pngfilekickstarterurl[key]
-        totalitem_kicktraqurl.append(item_kicktraqurl)
-        time.sleep(1+1/(len(totalitem_kicktraqurl)+1))
-        if len(totalitem_kicktraqurl)>50:
-            writeacsvprocess(collected_file,headers,totalitem_kicktraqurl)
-            totalitem_kicktraqurl=[]
 
+        if mutex.acquire():
+            totalitem_kicktraqurl.append(item_kicktraqurl)
+            collected_key.append(key)
+            counts+=1
+
+            if len(totalitem_kicktraqurl)>50:
+                writeacsvprocess(collected_file,headers,totalitem_kicktraqurl)
+                totalitem_kicktraqurl=[]
+                imagetodownloadprocess(collected_key)
+                collected_key=[]
+                #time.sleep(1)
+
+
+            mutex.release()
+        time.sleep(0.5+1/(len(totalitem_kicktraqurl)+1))
+        #print counts,aaa
         f2 = time.time()
         w=(len(file1)-counts)*(f2-f1)/y
         progress_test(counts,len(file1),f2-f1,w)
@@ -175,7 +191,19 @@ def savingallimageforeachproject(key,file1):
         #sys.stdout.write("\rthis spider has already read %d projects" % (counts))
         #sys.stdout.flush()
         gc.collect()
-    writeacsvprocess(collected_file,headers,totalitem_kicktraqurl)
+    #writeacsvprocess(collected_file,headers,totalitem_kicktraqurl)
+def imagetodownloadprocess(collected_key):
+
+    type_png=['dailypledges.png','dailybackers.png','dailycomments.png']
+    for key in collected_key:
+        for i in type_png:
+            locals()['kickstraq%s'%i]=generateimageurl(pngfilekicktraqurl[key],i)
+            locals()['img_daily%s'%i]=webscraper_png(locals()['kickstraq%s'%i])
+            savingimage(locals()['img_daily%s'%i],savingdatapath_dict,key,i)
+
+
+
+
 
 def zipafilefordelivery(file,target):
     with zipfile.ZipFile(file, 'w',zipfile.ZIP_DEFLATED) as z:
@@ -251,14 +279,14 @@ class ThreadClass(threading.Thread):
     def run(self):
         while 1:
             (target) = self.queue.get()
-            savingallimageforeachproject(target,file1)
+            savingallimageforeachproject(target)
 
             #time.sleep(1/10)
             self.queue.task_done()
 
 
 def main(pngfilekicktraqurl,y):
-
+    con = threading.Condition()
     for j in xrange(y):
         t = ThreadClass(queue)
         t.setDaemon(True)
@@ -268,13 +296,28 @@ def main(pngfilekicktraqurl,y):
         queue.put(key)
     queue.join()
 
+def statuscode():
+    statuscode=input('please enter stastus code(0-99):')
+    if statuscode > 99 :
+        savingdatapath='/Users/sn0wfree/Dropbox/BitTorrentSync/data/image'
+
+    else:
+        savingdatapath=input('please input the saving data path:')
+    return savingdatapath
+
 if __name__=='__main__':
     gc.enable()
-    queue = Queue.Queue()
     totalitem_kicktraqurl=[]
+    global counts,collected_key
+    counts=0
+    collected_key=[]
 
-    #savingdatapath='/Users/sn0wfree/Dropbox/BitTorrentSync/kickstarterscrapy/ocrforkicktraq/data'
-    savingdatapath=input('please input the saving data path:')
+
+
+    savingdatapath=statuscode()
+    y=input('please enter the No. of workers(recommadation:4):')
+
+
     savingdatapath_dict=savingdatapath+'/file'
     target_file= savingdatapath+'/'+'target.csv'
     #target_file=input('please input the target_file path:')
@@ -282,14 +325,19 @@ if __name__=='__main__':
     pngfilekickstarterurl = optimalforcollected(collected_file,target_file)
     #someurl='https://www.kickstarter.com/projects/822494155/the-marshall-project-reports-on-life-inside?ref=category_newest'
     pngfilekicktraqurl={}
-    y=4
     for key in pngfilekickstarterurl:
         #change from kcikstarter url to kicktraqurl
         kicktraq_url=obtain_kicktraqurl(pngfilekickstarterurl[key])
         #group kicktraqurl
         pngfilekicktraqurl[key]=kicktraq_url
     #if want to save all picture , run following line code for saving
+    global file1
+    file1=list(pngfilekicktraqurl)
+    print ' image download process begin'
+
     main(pngfilekicktraqurl,y)
+    writeacsvprocess(collected_file,headers,totalitem_kicktraqurl)
+    imagetodownloadprocess(collected_key)
     #creat a intermediary folder
     print 'download pic process completed'
 
