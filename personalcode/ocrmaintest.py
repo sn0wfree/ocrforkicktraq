@@ -15,23 +15,54 @@ import numpy as np
 #from matplotlib import pyplot as plt
 
 
-if __name__ == '__main__':  
+if __name__ == '__main__':
     gc.enable()
-    image_file='dailypledges-5.png'
+    path_a='/Users/sn0wfree/Documents/python_projects/ocrforkicktraq'
+#/Users/sn0wfree/Documents/python_projects/ocrforkicktraq/dailypledges-5.png
+    image_file=path_a+'/'+'dailypledges-5.png'
     image=Image.open(image_file).convert("RGBA")
-    path='/Users/sn0wfree/Dropbox/BitTorrentSync/kickstarterscrapy/ocrforkicktraq/dict'
+    path=path_a+'/dict'
     #characters_dict=loading_characters_dictionary(path)
     #change the color
     image,axis=dailypledges_chart_bottom_confirm(image)
     #image.show()
 
     roll = image.transpose(Image.ROTATE_270)
-    roll_axis = axis.transpose(Image.ROTATE_270)
-    print roll_axis.size[0],roll_axis.size[1]
-    dailydata=forsilceandsearchrowsandcolums(roll,roll_axis)
-    characteristiclibs=read_characteristic_lib(path+'/characteristic.txt')
+    roll.show()
+
+    #roll_axis = axis.transpose(Image.ROTATE_270)
+    #roll_axis.show()
+    #print roll_axis.size[0],roll_axis.size[1]
+
+
+
+
+
+    #split by day
+    #dailydata=forsilceandsearchrowsandcolums(roll,roll_axis)
+    #characteristiclibs=read_characteristic_lib(path+'/characteristic.txt')
     #dailydata[0].show()
-    liss={}
+    #liss={}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    '''
     for day in list(dailydata):
         day_char=splitcolumtocharacter(dailydata[day])
         pre_process=characteristicfunction(day_char[0])
@@ -44,6 +75,7 @@ if __name__ == '__main__':
                 char=recogonize_char(char_d,characteristiclibs)
                 day_text=day_text+char
         liss[day]=day_text
+    '''
              # 2 4 5 6 7 0 euro pound KR
         #enter char recogonize
     ##recognize_process

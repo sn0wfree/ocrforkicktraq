@@ -1,99 +1,53 @@
+from urllib2 import Request, urlopen, URLError
+import time
+import urllib2
+import requests
+from lxml import etree
+import os,gc,sys
+import pandas as pd
+import unicodecsv
+import csv
+import multiprocessing as mp
+import datetime
+import time
+import threading
+import Queue
+#import celery
+from PIL import Image
+
+#from downloadimage import *
+
 import pytesseract,os,gc
 from PIL import Image, ImageStat
 import StringIO, cStringIO
 import tweepy
-import time
-import datetime
-import pandas as pd
 import requests
 import requests_cache
-from lxml import etree
 #import cv2
 import numpy as np
 '''
-def recogonize_char(image_dict,characteristiclibs):
-    left_9=characteristiclibs['9']
-    left_2=characteristiclibs['2']
-    left_4=characteristiclibs['4']
-    left_5=characteristiclibs['5']
-    left_7=characteristiclibs['7']
-    left_0=characteristiclibs['0']
-    left_K=characteristiclibs['K']
-    left_R=characteristiclibs['R']
-    left_poundsymbol=characteristiclibs['poundsymbol']
-    left_eurosymbol=characteristiclibs['eurosymbol']
-    #left_0=characteristiclibs['0']
-    # 2 4 5 6 7 0 euro pound KR
-    if image_dict['the_number_of_columns']<=2:
-        left_1=characteristiclibs['1']
-        #
-        left_comma=characteristiclibs['comma']
-        if image_dict['the_number_of_columns']==left_1['the_number_of_columns']:
-            if image_dict['the_number_of_pixel_in_each_row']=left_1['the_number_of_pixel_in_each_row'] and image_dict['the_number_of_pixel_in_each_column']=left_1['the_number_of_pixel_in_each_column']:
-                return '1'
-        elif image_dict['the_number_of_columns']==left_comma['the_number_of_columns']:
+9:4:5:[1.0, 3.0, 3.0, 3.0]:[2.0, 2.0, 3.0, 1.0, 2.0]
+8:4:5:[2.0, 3.0, 3.0, 2.0]:[2.0, 2.0, 2.0, 2.0, 2.0]
+2:4:5:[3.0, 3.0, 3.0, 2.0]:[3.0, 1.0, 2.0, 1.0, 4.0]
+3:4:5:[2.0, 3.0, 3.0, 2.0]:[3.0, 1.0, 2.0, 1.0, 3.0]
+4:4:5:[3.0, 1.0, 1.0, 5.0]:[2.0, 2.0, 4.0, 1.0, 1.0]
+5:4:5:[4.0, 3.0, 3.0, 2.0]:[4.0, 1.0, 3.0, 1.0, 3.0]
+6:4:5:[3.0, 3.0, 3.0, 1.0]:[2.0, 1.0, 3.0, 2.0, 2.0]
+7:4:5:[1.0, 3.0, 2.0, 2.0]:[4.0, 1.0, 1.0, 1.0, 1.0]
+0:4:5:[3.0, 2.0, 2.0, 3.0]:[2.0, 2.0, 2.0, 2.0, 2.0]
+K:4:5:[5.0, 1.0, 2.0, 2.0]:[2.0, 2.0, 2.0, 2.0, 2.0]
+R:4:5:[5.0, 2.0, 2.0, 3.0]:[3.0, 2.0, 3.0, 2.0, 2.0]
+eurodollarsymbol:4:5:[3.0, 3.0, 3.0, 2.0]:[3.0, 1.0, 3.0, 1.0, 3.0]
+poundsymbol:4:5:[2.0, 4.0, 3.0, 3.0]:[2.0, 1.0, 4.0, 1.0, 4.0]
+1:2:5:[1.0, 5.0]:[2.0, 1.0, 1.0, 1.0, 1.0]
+minus:3:1:[1.0, 1.0, 1.0]:[3.0]
+dollarsymbol:5:7:[2.0, 3.0, 7.0, 3.0, 2.0]:[1.0, 4.0, 2.0, 3.0, 2.0, 4.0, 1.0]
+comma:2:2:[1.0, 1.0]:[1.0, 1.0]
 
-            if image_dict['the_number_of_pixel_in_each_row']=left_comma['the_number_of_pixel_in_each_row'] and image_dict['the_number_of_pixel_in_each_column']=left_comma['the_number_of_pixel_in_each_column']:
-                return ','
-    elif image_dict['the_number_of_columns']==3:
-        left_minus=characteristiclibs['minus']
-        if image_dict['the_number_of_pixel_in_each_row']=left_minus['the_number_of_pixel_in_each_row'] and image_dict['the_number_of_pixel_in_each_column']=left_minus['the_number_of_pixel_in_each_column']:
-            return '-'
-            break
-    elif image_dict['the_number_of_columns']==5:
-        left_dollarsymbol=characteristiclibs['dollarsymbol']
-        if image_dict['the_number_of_pixel_in_each_row']=left_dollarsymbol['the_number_of_pixel_in_each_row'] and image_dict['the_number_of_pixel_in_each_column']=left_dollarsymbol['the_number_of_pixel_in_each_column']:
-            return '$'
-    elif image_dict['the_number_of_columns']==4:
-        left_8=characteristiclibs['8']
-        if image_dict['the_number_of_pixel_in_each_column']=left_8['the_number_of_pixel_in_each_column']:
-            if image_dict['the_number_of_pixel_in_each_row']=left_8['the_number_of_pixel_in_each_row']:
-                return '8'
-            else:
-                left_3=characteristiclibs['3']
-                if image_dict['the_number_of_pixel_in_each_row']=left_3['the_number_of_pixel_in_each_row']:
-                    return '3'
-        elif image_dict['the_number_of_pixel_in_each_column']=left_9['the_number_of_pixel_in_each_column']:
-                if image_dict['the_number_of_pixel_in_each_row']=left_9['the_number_of_pixel_in_each_row']:
-                    return '9'
-        elif image_dict['the_number_of_pixel_in_each_column']=left_2['the_number_of_pixel_in_each_column']:
-                if image_dict['the_number_of_pixel_in_each_row']=left_2['the_number_of_pixel_in_each_row']:
-                    return '2'
-        elif image_dict['the_number_of_pixel_in_each_column']=left_4['the_number_of_pixel_in_each_column']:
-                if image_dict['the_number_of_pixel_in_each_row']=left_4['the_number_of_pixel_in_each_row']:
-                    return '4'
-        elif image_dict['the_number_of_pixel_in_each_column']=left_6['the_number_of_pixel_in_each_column']:
-                if image_dict['the_number_of_pixel_in_each_row']=left_6['the_number_of_pixel_in_each_row']:
-                    return '6'
-        elif image_dict['the_number_of_pixel_in_each_column']=left_5['the_number_of_pixel_in_each_column']:
-                if image_dict['the_number_of_pixel_in_each_row']=left_5['the_number_of_pixel_in_each_row']:
-                    return '5'
-        elif image_dict['the_number_of_pixel_in_each_column']=left_7['the_number_of_pixel_in_each_column']:
-                if image_dict['the_number_of_pixel_in_each_row']=left_7['the_number_of_pixel_in_each_row']:
-                    return '7'
-        elif image_dict['the_number_of_pixel_in_each_column']=left_0['the_number_of_pixel_in_each_column']:
-                if image_dict['the_number_of_pixel_in_each_row']=left_0['the_number_of_pixel_in_each_row']:
-                    return '0'
-        elif image_dict['the_number_of_pixel_in_each_column']=left_K['the_number_of_pixel_in_each_column']:
-                if image_dict['the_number_of_pixel_in_each_row']=left_K['the_number_of_pixel_in_each_row']:
-                    return 'K'
-        elif image_dict['the_number_of_pixel_in_each_column']=left_R['the_number_of_pixel_in_each_column']:
-                if image_dict['the_number_of_pixel_in_each_row']=left_R['the_number_of_pixel_in_each_row']:
-                    return 'R'
-        elif image_dict['the_number_of_pixel_in_each_column']=left_poundsymbol['the_number_of_pixel_in_each_column']:
-                if image_dict['the_number_of_pixel_in_each_row']=left_poundsymbol['the_number_of_pixel_in_each_row']:
-                    return 'gbp'
-        elif image_dict['the_number_of_pixel_in_each_column']=left_eurosymbol['the_number_of_pixel_in_each_column']:
-                if image_dict['the_number_of_pixel_in_each_row']=left_eurosymbol['the_number_of_pixel_in_each_row']:
-                    return 'eur'
 '''
-def image_to_string(img, cleanup=True, plus=''):
-    os.popen('tesseract ' + img + ' ' + img + ' ' + plus)
-    with open(img + '.txt','r') as txt:
-        text=txt.read()
-    if cleanup:
-        os.remove(img + '.txt')
-    return text
+
+
+
 
 def dailypledges_lable_confirm(image):
     lable_bottom_box=(57,213,72,225)
@@ -231,54 +185,6 @@ def scanaxis(image):
             dicts[i]=sumpix
     return dicts
 
-def cropdailybar(dicts,dicts_axis,image):
-    a=sorted(list(dicts))
-    dayslabel=sorted(list(dicts_axis))
-    daylabel={}
-    for i in xrange(len(dayslabel)):
-        daylabel[dayslabel[i]]=i
-    #print a
-
-    counts=0
-    line={}
-    count=0
-    for i in xrange(0,len(a)):
-        if i <(lena-1):
-            if  (a[i+1]-a[i])<=2:
-                count+=1
-            else:
-                line[counts]=(a[i]-count,a[i])
-                #gap.append(a[i+1]-a[i])
-                count=0
-                counts+=1
-        else:
-            if i==(lena-1):
-                line[counts]=(a[i]-count,a[i])
-                #return a dict
-    dailyimage={}
-    #print line
-    listline=list(line)
-    #print line[0]
-    #(a,w)=line[0]
-    #boxa=(0,a-1,image.size[0],w+2)
-    #ss=image.crop(boxa)
-    #ss.show()
-
-    for i in listline:
-        (y1,y2)=line[i]
-        average=(y1+y2)/2
-        for row in list(daylabel):
-            if row in xrange(average-2,average+2):
-                loacted_day=daylabel[row]
-                del daylabel[row]
-                break
-        box=(0,y1-1,image.size[0],y2+2)
-        locals()['data%s'%i]=image.crop(box)
-
-        dailyimage[loacted_day]=locals()['data%s'%i]
-    #dailyimage[0].show()
-    return dailyimage
-
 def forsilceandsearchrowsandcolums(image,image_axis):
     dicts=scanrown(image)
     dicts_axis=scanaxis(image_axis)
@@ -289,17 +195,11 @@ def forsilceandsearchrowsandcolums(image,image_axis):
     pledged_dailyimage={}
     listdailyimage=list(dailyimage)
     lenlistdailyimage=len(listdailyimage)
-    #for w in listdailyimage:
-    #    day_character_pic=splitcolumtocharacter(dailyimage[w])
-        #####
 
-
-    #daily=dailyimage[4]
-    #daily.show()
-    #days=splitcolumtocharacter(daily)
     return dailyimage
 
 def splitcolumtocharacter(dailydata5):
+    #sellect line which have characters
     character={}
     pixels=dailydata5.load()
     for j in xrange(dailydata5.size[0]):
@@ -311,10 +211,9 @@ def splitcolumtocharacter(dailydata5):
                 pass
         if sumpix >=1:
             character[j]=sumpix
+    #extract each whole char line
     a=sorted(list(character))
-    #print a
     lena=len(a)
-
     counts=0
     line={}
     count=0
@@ -340,45 +239,8 @@ def splitcolumtocharacter(dailydata5):
         characters[i]=locals()['day%s'%i]
     return characters
 
-def pledge_recognitionzeroloaction(image):
-    #print type(image_file)
-    lable_bottom=dailypledges_lable_confirm(image)
-    #print type(lable_bottom_png)
-    #lable_bottom.show()
-    #lable_bottom.save('/Users/sn0wfree/Dropbox/BitTorrentSync/kickstarterscrapy/ocrforkicktraq/dict/$0.tif')
-    lable_bottom.save("temp.tif")
-    temp=Image.open("temp.tif").convert("RGBA")
-    os.remove("temp.tif")
 
-    #temp_stringio = cStringIO.StringIO()
-    #lable_bottom.save(temp_stringio,format='png')
-    #temp_stringio.seek(0)
-    #temp= temp_stringio.getvalue()
-    #temp_stringio.close()
-    #temp=temp.convert("RGBA")
-    labledollarsymbol0=Image.open('/Users/sn0wfree/Dropbox/BitTorrentSync/kickstarterscrapy/ocrforkicktraq/dict/pledgelabledollarsymbol0.tif').convert("RGBA")
-    #print type(labledollarsymbol0)
-    if temp== labledollarsymbol0:
-        print 'coordinate axis is at bottom'
-        location='bottom'
-    else:
-        print 'coordinate axis is at middle'
-        location='middle'
-    return location
 
-def loading_characters_dictionary(path):
-    characters_dict={}
-    charactersdict=os.listdir(path)
-    for files in charactersdict:
-        name=files.split('.')[0]
-
-        files_image=path+'/'+files
-        if name!='':
-            dict_characters_image=Image.open(files_image)
-            characters_dict[name]=dict_characters_image
-        else:
-            pass
-    return characters_dict
 
 def charactersearchprocessforchart(image,characters_dict, opt=True,types='pledge'):
     dd='cannot recognize'
@@ -431,7 +293,7 @@ def charactersearchprocessforchart(image,characters_dict, opt=True,types='pledge
             break
     return dd
 
-def read_whole_line(days):
+def read_whole_line_test(days):
     for i in xrange(sorted(list(days))):
         readline=''
         if charactersearchprocessforchart(days[i],characters_dict)!='cannot recognize':
@@ -440,6 +302,22 @@ def read_whole_line(days):
         else:
             readline+='meet Error'
     return realine
+
+
+def read_characteristic_lib_csv(characteristiclibs_file_csv):
+    characteristiclibs_csv=readacsv(characteristiclibs_file_csv)
+    pd.options.mode.chained_assignment = None
+    for i in xrange(len(characteristiclibs_csv['the_number_of_pixel_in_each_column'])):
+        temp_a=characteristiclibs_csv['the_number_of_pixel_in_each_column'][i]
+        a=[float(st) for st in temp_a.split('-')]
+        characteristiclibs_csv['the_number_of_pixel_in_each_column'][i]=tuple(a)
+    for j in xrange(len(characteristiclibs_csv['the_number_of_pixel_in_each_row'])):
+        temp_b=characteristiclibs_csv['the_number_of_pixel_in_each_row'][j]
+        b=[float(st) for st in temp_b.split('-')]
+        characteristiclibs_csv['the_number_of_pixel_in_each_row'][j]=tuple(b)
+    #characteristiclibs_csv=characteristiclibs_csv.set_index('name')
+    return characteristiclibs_csv
+
 
 def read_characteristic_lib(file):
 
@@ -481,20 +359,19 @@ def read_characteristic_lib(file):
             characteristiclibs[name]=characteristicvalue
     return characteristiclibs
 
-def characteristicfunction(character_image,setup=False,name='null',path='null'):
-    def sumacharacteristicforsingleroworcolumn(sum_row):
-        listsum_row=list(sum_row)
-        sumrow=[]
-        lenlistsqsum_row=len(listsum_row)
-        for i in xrange(lenlistsqsum_row):
-            if listsum_row[i] !=0:
-                sumrow.append(listsum_row[i])
-            else:
-                pass
-        return sumrow
+def read_characteristic_libs(file):
+    if os.path.splitext(file)[1]=='.txt':
+        characteristiclibs=read_characteristic_lib(file)
+    elif os.path.splitext(file)[1]=='.csv':
+        characteristiclibs=read_characteristic_lib_csv(file)
+    else:
+        print 'please type correct file'
+        raise Exception('please type correct file')
+    return characteristiclibs
 
+def pandalizationfortest(character_image):
     pix=character_image.load()
-    characteristicvalue={}
+
     data = np.zeros((character_image.size[1],character_image.size[0]))
     #data[0][1]=1
     for i in xrange(character_image.size[0]):
@@ -509,6 +386,22 @@ def characteristicfunction(character_image,setup=False,name='null',path='null'):
                 dataset[i][j]=1
             else:
                 dataset[i][j]=0
+    return dataset
+
+def sumacharacteristicforsingleroworcolumn(sum_row):
+    listsum_row=list(sum_row)
+    sumrow=[]
+    lenlistsqsum_row=len(listsum_row)
+    for i in xrange(lenlistsqsum_row):
+        if listsum_row[i] !=0:
+            sumrow.append(listsum_row[i])
+        else:
+            pass
+    return sumrow
+
+def characteristicfunction(character_image,setup=False,name='null',path='null'):
+    characteristicvalue={}
+    dataset=pandalizationfortest(character_image)
 
     #the number of column,
     the_number_of_columns=dataset.shape[1]
@@ -520,8 +413,8 @@ def characteristicfunction(character_image,setup=False,name='null',path='null'):
     the_number_of_pixel_in_each_column=sumacharacteristicforsingleroworcolumn(sum_column)
     characteristicvalue['the_number_of_columns']=the_number_of_columns
     characteristicvalue['the_number_of_rows']=the_number_of_rows
-    characteristicvalue['the_number_of_pixel_in_each_row']=the_number_of_pixel_in_each_row
-    characteristicvalue['the_number_of_pixel_in_each_column']=the_number_of_pixel_in_each_column
+    characteristicvalue['the_number_of_pixel_in_each_row']=tuple(the_number_of_pixel_in_each_row)
+    characteristicvalue['the_number_of_pixel_in_each_column']=tuple(the_number_of_pixel_in_each_column)
     #characteristicvalue['dataset']=dataset
     if setup==True:
         if name=='null' and path=='null':
@@ -540,5 +433,148 @@ def characteristicfunction(character_image,setup=False,name='null',path='null'):
             f.write(str(characteristicvalue['the_number_of_pixel_in_each_row'])+'\n')
     return characteristicvalue
 
+
+
+def cropfordailydata(roll,line):
+    dailyimage={}
+    for i in xrange(len(line)):
+        (y1,y2)=line[i]
+        box=(0,y1-1,roll.size[0],y2+2)
+        locals()['data%s'%i]=roll.crop(box)
+
+        dailyimage[i]=locals()['data%s'%i]
+    #dailyimage[0].show()
+    return dailyimage
+
+
+def readacsv(file):
+    with open(file,'r+') as f:
+        w=pd.read_csv(file,skip_footer=1,engine='python')
+    return w
+
+def returnthercharacteristicsymbol(dailyimage11):
+    lencolumn=len(dailyimage11['the_number_of_pixel_in_each_column'])
+    lenrow=len(dailyimage11['the_number_of_pixel_in_each_row'])
+    global characteristiclibs
+    c2c= characteristiclibs[characteristiclibs.the_number_of_columns==lencolumn]
+    c2c=c2c[c2c.the_number_of_rows==lenrow]
+    c2c=c2c[c2c.the_number_of_pixel_in_each_column==dailyimage11['the_number_of_pixel_in_each_column']]
+    c2c=c2c[c2c.the_number_of_pixel_in_each_row==dailyimage11['the_number_of_pixel_in_each_row']]
+    #print c2c
+    a=c2c.name.tolist()
+    #print a
+    if a ==[]:
+        a=''
+    else:
+        a=a[0]
+        #print a
+    return a
+
+
+def splitdailydataprocess(roll):
+    dicts=scanrown(roll)
+    a=sorted(list(dicts))
+    line=[]
+    loca=(a[0],0)
+    lena=len(a)
+    params=2
+    for i in xrange(0,lena):
+        if i <(lena-1):
+            if  (a[i+1]-a[i])<=params:
+                if loca[1]<=a[i+1]:
+                    loca=(loca[0],a[i+1])
+                elif loca[1]>a[i+1]:
+                    raise Exception('image daily split process err')
+            elif (a[i+1]-a[i])>params:
+                if loca[1]==a[i]:
+                    line.append(loca)
+                    loca=(a[i+1],a[i+2])
+                elif loca[1]<a[i]:
+                    raise Exception('image daily split process err')
+                elif loca[1]>a[i]:
+                    raise Exception('image daily split process err')
+        elif i ==(lena-1):
+            loca=(loca[0],a[i])
+            line.append(loca)
+    return line
+
 if __name__ == '__main__':
-    pass
+    gc.enable()
+    ppppp='/Users/sn0wfree/Documents/python_projects/ocrforkicktraq/dict'
+    localtxt=ppppp+'/characteristic.txt'
+    localcsv=ppppp+'/characteristic.csv'
+    global characteristiclibs
+    characteristiclibs=read_characteristic_libs(localcsv)
+
+    path_a='/Users/sn0wfree/Documents/python_projects/ocrforkicktraq'
+    image_file=path_a+'/'+'dailypledges-6.png'
+    image=Image.open(image_file).convert("RGBA")
+    path=path_a+'/dict'
+    image,axis=dailypledges_chart_bottom_confirm(image)
+
+    roll = image.transpose(Image.ROTATE_270)
+
+    line=splitdailydataprocess(roll)
+
+    dailyimage=cropfordailydata(roll,line)
+    #dailyimage[2].show()
+    #dailyimage[3].show()
+    def wholerecogniseprocess(dailyimage):
+        dailyimage_word={}
+        lenlist=list(dailyimage)
+        for i in lenlist:
+            word=''
+            subdailyimage=splitcolumtocharacter(dailyimage[i])
+            first_symbol=characteristicfunction(subdailyimage[0])
+
+            first_symbol_v=returnthercharacteristicsymbol(first_symbol)
+            #print first_symbol_v
+            if first_symbol_v == '':
+                dailyimage_rotate_temp=dailyimage[i].transpose(Image.ROTATE_90)
+                subdailyimage_rotate_temp=splitcolumtocharacter(dailyimage_rotate_temp)
+                subdailyimage=subdailyimage_rotate_temp
+            else:
+                pass
+            #subdailyimage[0].show()
+
+            lensublist=list(subdailyimage)
+
+            for j in lensublist:
+                symbol=''
+                subdailyimage1=characteristicfunction(subdailyimage[j])
+                symbol=returnthercharacteristicsymbol(subdailyimage1)
+                #print symbol
+                #print type(symbol),type(word)
+                word+=symbol
+            dailyimage_word[i]=word
+        return dailyimage_word
+    #dailyimage[1].show()
+    dailyimage_word=wholerecogniseprocess(dailyimage)
+    print dailyimage_word
+
+    #dailyimage[2].show()
+
+    #.values()
+
+
+
+
+
+
+
+    #print characteristiclibs['1']
+    #headers=['name','the_number_of_columns','the_number_of_rows','the_number_of_pixel_in_each_column','the_number_of_pixel_in_each_row']
+    #each_column=characteristiclibs[headers[3]].tolist()
+    #print each_column,characteristiclibs_csv
+
+
+    #characteristiclibs_csv=transferfromcsvbalabalatoform(characteristiclibs_csv)
+
+    #print dailyimage11
+
+
+
+
+
+
+    #print characteristiclibs[characteristiclibs.the_number_of_column==dailyimage11['the_number_of_pixel_in_each_row']]
