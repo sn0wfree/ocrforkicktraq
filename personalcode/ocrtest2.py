@@ -408,6 +408,7 @@ def sumacharacteristicforsingleroworcolumn(sum_row):
             sumrow.append(listsum_row[i])
         else:
             pass
+    #sumrow.append[listsum_row_s for listsum_row_s in listsum_row[if listsum_row_s !=0]]
     return sumrow
 
 def characteristicfunction(character_image,setup=False,name='null',path='null'):
@@ -465,7 +466,7 @@ def cropfordailydata(roll,line, seri= True ):
 
 
 def readacsv(file):
-    with open(file,'r+') as f:
+    with open(file,'rw') as f:
         w=pd.read_csv(file,skip_footer=1,engine='python')
     return w
 
@@ -710,6 +711,14 @@ def dailybackers_recognization_process(dailybackers_image_file):
     dailybackers_word_labelled=addlabelandcategoryprocess(dailybackers_word,'dailybackers')
     return dailybackers_word_labelled
 
+def data_txt_write(dicts,file):
+    with open(file,'a') as f:
+        for item in dicts.values():
+            f.write(str(item)+',')
+        f.write(';')
+
+
+
 def dailycomments_recognization_process(dailycomments_image_file):
     image=Image.open(dailycomments_image_file).convert("RGBA")
 
@@ -774,25 +783,58 @@ def total_generation_process(dailypledges_image_file,dailycomments_image_file,da
     gc.collect()
     return dailypledges_word,dailycomments_word,dailybackers_word
 
+def OnlyStr(s,oth=''):
+   #s2 = s.lower();
+   fomart = '0123456789'
+   for c in s:
+       if not c in fomart:
+           s = s.replace(c,'');
+   return s;
+
+
+def Onlynum(s,oth=''):
+    statuscodefornum=0
+
+    #s2 = s.lower();
+    fomart = '0123456789.'
+    for c in s:
+        if not c in fomart:
+            statuscodefornum = 1
+            break
+        else:
+            pass
+    return statuscodefornum
+
 def scanfolderprocess(rdir):
     fo=os.walk(rdir)
-
     f=[]
     for root,subfolder,files in fo:
         #print root
         num=root.lstrip(rdir)
         #print num,type(num)
-        if num !='':
+        statuscodefornum=Onlynum(num)
+        if statuscodefornum == 0 and num !='':
+            #print num
             number=float(num)
-
             f.append(number)
         else:
+            print num
+            #error_ID.append(num)
             pass
-
     return f
+def getDirList( p ):
+        p = str( p )
+        if p=="":
+              return [ ]
+        #p = p.replace( "/","/")
+        if p[-1] != "/":
+             p = p+"/"
+        a = os.listdir( p )
+        b = [ float(x)   for x in a if os.path.isdir( p + x ) ]
+        return b
 
 def writeacsvprocess(file,headers,item):
-    with open(file,'r+') as project_data:
+    with open(file,'r') as project_data:
         project_data_read_csv = unicodecsv.reader(project_data,headers)
         if not headers in project_data_read_csv:
             status=0
@@ -804,6 +846,24 @@ def writeacsvprocess(file,headers,item):
         if status ==0:
             project_data_csv.writeheader()
         project_data_csv.writerows(item)
+        #project_data.write('\n')
+
+
+def writeacsvprocess_w(file,headers,item):
+    with open(file,'r') as project_data:
+        project_data_read_csv = unicodecsv.reader(project_data,headers)
+        if not headers in project_data_read_csv:
+            status=0
+        else:
+            status=1
+        #print status
+    with open(file,'a') as project_data:
+        project_data_csv = unicodecsv.DictWriter(project_data,headers)
+        if status ==0:
+            project_data_csv.writeheader()
+        project_data_csv.writerows(item)
+        #project_data.write('\n')
+
 def dailypledges_dailycomments_dailybackers_collection(target_word,data_type,rdir):
     target_short_dict={}
 
@@ -831,12 +891,23 @@ def dailypledges_dailycomments_dailybackers_collection(target_word,data_type,rdi
 
     return  target_short_dict
 
+
+def collected_list_overwrite(file,item):
+    f = open (file,'a')
+    lenitem=len(item)
+    for i in xrange(0,lenitem):
+        f.write(item[i]+'\n')
+    f.close()
+
+
 def total_scan_recognization_regroup_process(rdir):
     f1=time.time()
     global dailypledges_dict_list
     global dailycomments_dict_list
     global dailybackers_dict_list
-    global counts
+    global counts,path_a
+    global collected
+    global error_ID,error_file_collected
     global y
     dailypledges_image_file=rdir['dailypledges']
     dailycomments_image_file=rdir['dailycomments']
@@ -844,13 +915,17 @@ def total_scan_recognization_regroup_process(rdir):
     try:
         (dailypledges_word,dailycomments_word,dailybackers_word)=total_generation_process(dailypledges_image_file,dailycomments_image_file,dailybackers_image_file)
     except:
+        import shutil
         #saving error project_id
-        try:
-            error_ID.append(rdir['Project_ID'])
-        except:
-            pass
-        else:
-            print 'the imag_id = %s error, error has been recorded'%rdir['Project_ID']
+        #print rdir['Project_ID']
+
+        error_ID.append({'Project_ID':rdir['Project_ID'],'status':'Error'})
+        #import shutil
+        move_file=path_a+'/file/%s'%rdir['Project_ID']
+
+        shutil.move(move_file,error_file_collected)
+
+        print 'the imag_id = %s error, error has been recorded'%rdir['Project_ID']
     else:
         #daily_data_set=(dailypledges_word,dailycomments_word,dailybackers_word)
         #print (dailypledges_word,dailycomments_word,dailybackers_word)
@@ -859,26 +934,44 @@ def total_scan_recognization_regroup_process(rdir):
         #daily_data_set=(dailypledges_word,dailycomments_word,dailybackers_word)
         #type_list=['dailypledges','dailycomments','dailybackers']
         #data_type='dailypledges'
+        #len(rdir['dailypledges'].)
+        #if
         dailypledges_short_dict=dailypledges_dailycomments_dailybackers_collection(dailypledges_word,'dailypledges',rdir)
-        dailypledges_dict_list.append(dailypledges_short_dict)
-        dailycomments_short_dict=dailypledges_dailycomments_dailybackers_collection(dailycomments_word,'dailycomments',rdir)
-        dailycomments_dict_list.append(dailycomments_short_dict)
-        dailybackers_short_dict=dailypledges_dailycomments_dailybackers_collection(dailybackers_word,'dailybackers',rdir)
-        dailybackers_dict_list.append(dailybackers_short_dict)
-        collected.append(rdir['Project_ID'])
-        counts+=1
-        if len(dailypledges_dict_list)>50:
+        if len(list(dailypledges_short_dict))<=105:
+            dailypledges_dict_list.append(dailypledges_short_dict)
+            dailycomments_short_dict=dailypledges_dailycomments_dailybackers_collection(dailycomments_word,'dailycomments',rdir)
+            dailycomments_dict_list.append(dailycomments_short_dict)
+            dailybackers_short_dict=dailypledges_dailycomments_dailybackers_collection(dailybackers_word,'dailybackers',rdir)
+            dailybackers_dict_list.append(dailybackers_short_dict)
+            #collected.append({'Project_ID':rdir['Project_ID']})
+            counts+=1
+        else:
+            error_ID.append({'Project_ID':rdir['Project_ID'],'status':'too long'})
+            import shutil
+            #saving error project_id
+            #print rdir['Project_ID']
 
+            error_ID.append({'Project_ID':rdir['Project_ID'],'status':'Error'})
+            #import shutil
+            move_file=path_a+'/file/%s'%rdir['Project_ID']
+
+            shutil.move(move_file,error_file_collected)
+
+
+
+        if len(dailypledges_dict_list)>50:
             savingcsvprocessfordailydata(path_a)
             dailypledges_dict_list=[]
             dailycomments_dict_list=[]
             dailybackers_dict_list=[]
+            #collected=[]
+            error_ID=[]
         else:
             pass
         f2=time.time()
         w=(lenfile-counts)*(f2-f1)/y
         progress_test(counts,lenfile,f2-f1,w)
-        time.sleep(random.random())
+        #time.sleep(random.random())
         gc.collect()
 
 def savingcsvprocessfordailydata(path_a):
@@ -889,27 +982,72 @@ def savingcsvprocessfordailydata(path_a):
                     '60','61','62','63','64','65','66','67','68','69','70','71','72','73','74','75','76','77','78','79',
                     '80','81','82','83','84','85','86','87','88','89','90','91','92','93','94','95','96','97','98','99','100']
     Project_ID_header=['Project_ID']
-    dailypledges_target_file= path_a+'/target/dailypledges.csv'
-    dailycomments_target_file=path_a+'/target/dailycomments.csv'
-    dailybackers_target_file=path_a+'/target/dailybackers.csv'
-    error_file=path_a+'/target/error.csv'
-    collected_file=path_a+'/target/collected.csv'
+    error_Project_ID_header=['Project_ID','status']
+
     writeacsvprocess(dailypledges_target_file,common_headers,dailypledges_dict_list)
     writeacsvprocess(dailycomments_target_file,common_headers,dailycomments_dict_list)
     writeacsvprocess(dailybackers_target_file,common_headers,dailybackers_dict_list)
-    writeacsvprocess(collected_file,Project_ID_header,collected)
-    writeacsvprocess(error_file,Project_ID_header,error_ID)
+    #writeacsvprocess(collected_file,Project_ID_header,collected)
+    #print error_ID
+    if error_ID is None:
+        pass
+    else:
+        writeacsvprocess(error_file,error_Project_ID_header,error_ID)
+    #collected_list_overwrite(error_file,error_ID)
 
 
 
 def inputsetting(status):
     if status ==1000:
-        dict_path='/Users/sn0wfree/Documents/python_projects/ocrforkicktraq/dict'
-        path_a='/Users/sn0wfree/Dropbox/BitTorrentSync/data/image'
+        dict_path='/Users/sn0wfree/Documents/imagedatakick/image/dict'
+        path_a='/Users/sn0wfree/Documents/imagedatakick/image/file'
     elif status ==1001:
         dict_path='/home/pi/datasharing/image/dict'
         path_a='/home/pi/datasharing/image'
         #path_a='/Users/sn0wfree/Dropbox/BitTorrentSync/data/image'
+    elif status==0:
+        dict_path='/Users/sn0wfree/Documents/imagedatakick/image/dict'
+        path_a='/Users/sn0wfree/Documents/imagedatakick/image/file/image0'
+    elif status==1:
+        dict_path='/Users/sn0wfree/Documents/imagedatakick/image/dict'
+        path_a='/Users/sn0wfree/Documents/imagedatakick/image/file/image1'
+    elif status==2:
+        dict_path='/Users/sn0wfree/Documents/imagedatakick/image/dict'
+        path_a='/Users/sn0wfree/Documents/imagedatakick/image/file/image2'
+    elif status==3:
+        dict_path='/Users/sn0wfree/Documents/imagedatakick/image/dict'
+        path_a='/Users/sn0wfree/Documents/imagedatakick/image/file/image3'
+    elif status==4:
+        dict_path='/Users/sn0wfree/Documents/imagedatakick/image/dict'
+        path_a='/Users/sn0wfree/Documents/imagedatakick/image/file/image4'
+    elif status==5:
+        dict_path='/Users/sn0wfree/Documents/imagedatakick/image/dict'
+        path_a='/Users/sn0wfree/Documents/imagedatakick/image/file/image5'
+    elif status==6:
+        dict_path='/Users/sn0wfree/Documents/imagedatakick/image/dict'
+        path_a='/Users/sn0wfree/Documents/imagedatakick/image/file/image6'
+    elif status==7:
+        dict_path='/Users/sn0wfree/Documents/imagedatakick/image/dict'
+        path_a='/Users/sn0wfree/Documents/imagedatakick/image/file/image7'
+    elif status==8:
+        dict_path='/Users/sn0wfree/Documents/imagedatakick/image/dict'
+        path_a='/Users/sn0wfree/Documents/imagedatakick/image/file/image8'
+    elif status==9:
+        dict_path='/Users/sn0wfree/Documents/imagedatakick/image/dict'
+        path_a='/Users/sn0wfree/Documents/imagedatakick/image/file/image9'
+    elif status==10:
+        dict_path='/Users/sn0wfree/Documents/imagedatakick/image/dict'
+        path_a='/Users/sn0wfree/Documents/imagedatakick/image/file/image10'
+    elif status==11:
+        dict_path='/Users/sn0wfree/Documents/imagedatakick/image/dict'
+        path_a='/Users/sn0wfree/Documents/imagedatakick/image/file/image11'
+    elif status==12:
+        dict_path='/Users/sn0wfree/Documents/imagedatakick/image/dict'
+        path_a='/Users/sn0wfree/Documents/imagedatakick/image/file/image12'
+    elif status==13:
+        dict_path='/Users/sn0wfree/Documents/imagedatakick/image/dict'
+        path_a='/Users/sn0wfree/Documents/imagedatakick/image/file/image13'
+        #file_path='/Users/sn0wfree/Documents/imagedatakick/image/outcome/image13'
     else:
         dict_path=input('please type in the path of characteristic dict(without name):')
         path_a=input('please type in target file path:')
@@ -952,18 +1090,18 @@ def progress_test(counts,lenfile,speed,w):
 
 if __name__ == '__main__':
     global characteristiclibs
-    global counts,collected
-    global error_ID
+    global counts,collected,collected_file
+    global error_ID,error_file,error_file_collected
     global path_a
-    global dailypledges_dict_list
-    global dailycomments_dict_list
-    global dailybackers_dict_list
+    global dailypledges_dict_list,dailypledges_target_file
+    global dailycomments_dict_list,dailycomments_target_file
+    global dailybackers_dict_list,dailybackers_target_file
     global y
     global lenfile
     queue = Queue.Queue()
     status=input('setup a status(0-99):')
-    #y=input('to choose the number of workers for this tasks:')
-    y=2
+    y=input('to choose the number of workers for this tasks:')
+    #y=2
     mail = input('mail it?(1 or 0):')
     counts=0
 
@@ -975,28 +1113,50 @@ if __name__ == '__main__':
     dailypledges_dict_list=[]
     dailycomments_dict_list=[]
     dailybackers_dict_list=[]
-    error_ID=[]
+    #error_ID=[]
 
     dict_path,path_a=inputsetting(status)
 
     dicttxt=dict_path+'/characteristic.txt'
     dictcsv=dict_path+'/characteristic.csv'
 
-    characteristiclibs=read_characteristic_libs(dictcsv)
-
     error_file=path_a+'/target/error.csv'
     collected_file=path_a+'/target/collected.csv'
-    tasks_uncleaning=scanfolderprocess(path_a+'/file')[0:100]
-    collected=readacsv(collected_file)['Project_ID'].tolist()
-    #print collected
+    error_file_collected=path_a+'/error'
+    #'/Users/sn0wfree/Documents/imagedatakick/image/file/image12/error'
+
+    dailypledges_target_file= path_a+'/target/dailypledges.csv'
+    dailycomments_target_file=path_a+'/target/dailycomments.csv'
+    dailybackers_target_file=path_a+'/target/dailybackers.csv'
+
+
+
+
+    tasks_uncleaning=getDirList(path_a+'/file')
+    collected=readacsv(dailypledges_target_file)['Project_ID'].tolist()
+    #error_list=readacsv(error_file)['Project_ID'].tolist()
+    error_list=getDirList(path_a+'/error')
+    error_ID=[]
+    if error_list != []:
+        for errors in error_list:
+            error_ID.append({'Project_ID':errors,'status':'Error'})
+    else:
+        pass
+
+    collected=list(set(collected))
+    characteristiclibs=read_characteristic_libs(dictcsv)
+
     #print collected
     #lencollected=len(collected)
     #lentasks_uncleaning=len(tasks_uncleaning)
     #tasks=scanfolderprocess(path_a+'/file')[0:50]
-    tasks=list(set(tasks_uncleaning)-set(collected))
+
+    tasks=list(set(tasks_uncleaning)-set(collected)-set(error_list))
     lenfile=len(tasks)
+    #print tasks[0]
     print 'total file counts: %s'%lenfile
     #=list(set(tasks_uncleaning)-set(collected))
+    characteristiclibs=read_characteristic_libs(dictcsv)
 
 
     rdirs=[]
@@ -1039,9 +1199,9 @@ if __name__ == '__main__':
     print 'saving process completed'
 
     if mail== 1:
-        dailypledges_target_file= path_a+'/target/dailypledges.csv'
-        dailycomments_target_file=path_a+'/target/dailycomments.csv'
-        dailybackers_target_file=path_a+'/target/dailybackers.csv'
+        dailypledges_target_file= path_a+'/outcome/dailypledges.csv'
+        dailycomments_target_file=path_a+'/outcome/dailycomments.csv'
+        dailybackers_target_file=path_a+'/outcome/dailybackers.csv'
         target_files=[dailybackers_target_file,dailycomments_target_file,dailypledges_target_file]
 
 

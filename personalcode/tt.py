@@ -18,20 +18,34 @@ from PIL import Image
 #from downloadimage import *
 
 
-def scanfolderprocess(a):
-    #(a,b)=c
-    fo=os.walk(a)
+def Onlynum(s,oth=''):
+    statuscodefornum=0
+
+    #s2 = s.lower();
+    fomart = '0123456789.'
+    for c in s:
+        if not c in fomart:
+            statuscodefornum = 1
+            break
+        else:
+            pass
+    return statuscodefornum
+
+def scanfolderprocess(rdir):
+    fo=os.walk(rdir)
     f=[]
     for root,subfolder,files in fo:
-        #print subfolder
-        num=root.lstrip(a)
+        #print root
+        num=root.lstrip(rdir)
         #print num,type(num)
-        if num !='' and num!= '.vol':
+        statuscodefornum=Onlynum(num)
+        if statuscodefornum == 0 and num !='':
+            #print num
             number=float(num)
             f.append(number)
         else:
+            print num
             pass
-
     return f
 
 
@@ -57,9 +71,16 @@ if __name__=='__main__':
     #print a
     c=(a,b)
     y=200
-    f=scanfolderprocess(a)
-    print len(f)
-
+    #f=scanfolderprocess(a)
+    listsqsum_row=[1,23,1234,424,5,23,1,43,42,3,42]
+    sumrow1=[]
+    sumrow2=[]
+    for i in xrange(lenlistsqsum_row):
+        if listsum_row[i] !=0:
+            sumrow1.append(listsum_row[i])
+    print sumrow1
+    sumrow2.append[listsum_row_s for listsum_row_s in listsum_row [if listsum_row_s !=0]]
+    print sumrow2
 
 
 '''
