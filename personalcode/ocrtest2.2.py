@@ -11,6 +11,7 @@ this code is for my dissertation.
 
 __author__='sn0wfree'
 __version__='2.0.8.1'
+__specialversion__='for GPU'
 
 
 # when i begin to write this codes, i truely understand what i have done
@@ -480,7 +481,7 @@ def cropfordailydata(roll,line, seri= True ):
 
 
 def readacsv(file):
-    with open(file,'rw') as f:
+    with open(file,'r') as f:
         w=pd.read_csv(file,skip_footer=1,engine='python')
     return w
 
@@ -1114,7 +1115,7 @@ def chunks(item,parts,model='equal_length'):
             lis.append(item[i:])
     return lis
 
-if __name__ == '__main__':
+def main_multi_core_recognise_process(status):
     global characteristiclibs
     global counts,collected,collected_file
     global error_ID,error_file,error_file_collected
@@ -1123,27 +1124,8 @@ if __name__ == '__main__':
     global dailycomments_dict_list,dailycomments_target_file
     global dailybackers_dict_list,dailybackers_target_file
     global y,error_counts
-    global lenfile
-    #queue = Queue.Queue()
-    status=input('setup a status(0-99):')
-    y=input('to choose the number of workers/parts for this tasks(8/50):')
-    #core=input('multicore(0) or multithreading(1):')
-    #y=2
-    #mail = input('mail it?(1 or 0):')
-    mail = 0
-    counts=0
-    cooldown=0
+    global lenfile,cooldown
 
-
-
-    if mail ==1:
-        mail_password=input('please enter mail password:')
-    else:
-        pass
-
-    dailypledges_dict_list=[]
-    dailycomments_dict_list=[]
-    dailybackers_dict_list=[]
     #error_ID=[]
 
     dict_path,path_a=inputsetting(status)
@@ -1165,7 +1147,7 @@ if __name__ == '__main__':
 
 
     tasks_uncleaning=getDirList(path_a+'/file')
-    print type(tasks_uncleaning[1])
+    #print type(tasks_uncleaning[1])
     collected_str=readacsv(dailypledges_target_file)['Project_ID'].tolist()
     #print collected_str[1]
     collected=[float(collected_str[x]) for x in xrange(len(collected_str)) ]
@@ -1179,8 +1161,9 @@ if __name__ == '__main__':
     else:
         pass
 
+
     #collected=list(set(collected))
-    characteristiclibs=read_characteristic_libs(dictcsv)
+
 
     #print collected
     #lencollected=len(collected)
@@ -1214,6 +1197,7 @@ if __name__ == '__main__':
     #common_headers=['Project_ID',0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89,90,91,92,93,94,95,96,97,98,99,100]
     #common_headers=['Project_ID','0','1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18','19','20','21','22','23','24','25','26','27','28','29','30','31','32','33','34','35','36','37','38','39','40','41','42','43','44','45','46','47','48','49','50','51','52','53','54','55','56','57','58','59','60','61','62','63','64','65','66','67','68','69','70','71','72','73','74','75','76','77','78','79','80','81','82','83','84','85','86','87','88','89','90','91','92','93','94','95','96','97','98','99','100']
     gc.enable()
+
 
     #multicoreprocess(rdirs)
     pool = mp.Pool()
@@ -1263,6 +1247,51 @@ if __name__ == '__main__':
         f2=time.time()
         w=(lenfile-counts)*(f2-f1)/y
         progress_test(counts,lenfile,f2-f1,w)
+
+def recursionprocess(status):
+
+    if type(status)== tuple :
+        print 'enter multi-target collection model(multi-core)'
+        for x in xrange(len(status)):
+            print 'collect %s part'%status[x]
+            main_multi_core_recognise_process(status[x])
+
+    elif type(status)== int:
+        print 'Enterring single-target collection model (multi-core)'
+        #print 'Please enter following info.'
+        main_multi_core_recognise_process(status)
+
+        #print status
+
+
+
+if __name__ == '__main__':
+    global characteristiclibs
+    global counts,collected,collected_file
+    global error_ID,error_file,error_file_collected
+    global path_a
+    global dailypledges_dict_list,dailypledges_target_file
+    global dailycomments_dict_list,dailycomments_target_file
+    global dailybackers_dict_list,dailybackers_target_file
+    global y,error_counts
+    global lenfile,cooldown
+    #queue = Queue.Queue()
+    status=input('setup a status(0-99):')
+    y=input('to choose the number of workers/parts for this tasks(8/50):')
+    #core=input('multicore(0) or multithreading(1):')
+    #y=2
+    #mail = input('mail it?(1 or 0):')
+    mail = 0
+    counts=0
+    cooldown=0
+    if mail ==1:
+        mail_password=input('please enter mail password:')
+    else:
+        pass
+    #main_multi_core_recognise_process(status)
+    recursionprocess(status)
+
+
 
 
 

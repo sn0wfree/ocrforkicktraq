@@ -11,7 +11,8 @@ this code is for my dissertation.
 
 __author__='sn0wfree'
 __version__='2.0.8.1'
-__specialversion__='for multi-threading'
+__specialversion__='for multi-core'
+
 
 # when i begin to write this codes, i truely understand what i have done
 # but now i'm not
@@ -480,7 +481,7 @@ def cropfordailydata(roll,line, seri= True ):
 
 
 def readacsv(file):
-    with open(file,'rw') as f:
+    with open(file,'r') as f:
         w=pd.read_csv(file,skip_footer=1,engine='python')
     return w
 
@@ -843,6 +844,8 @@ def getDirList( p ):
         if p[-1] != "/":
              p = p+"/"
         a = os.listdir( p )
+        #b = [ x   for x in a if os.path.isdir( p + x ) ]
+
         b = [ float(x)   for x in a if os.path.isdir( p + x ) ]
         return b
 
@@ -914,7 +917,7 @@ def collected_list_overwrite(file,item):
 
 
 
-def savingcsvprocessfordailydata(path_a):
+def savingcsvprocessfordailydata(path_a,dict_list):
     #data_types=['dailypledges','dailycomments','dailybackers']
     common_headers=['Project_ID','0','1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18','19','20',
                     '21','22','23','24','25','26','27','28','29','30','31','32','33','34','35','36','37','38','39',
@@ -923,13 +926,17 @@ def savingcsvprocessfordailydata(path_a):
                     '80','81','82','83','84','85','86','87','88','89','90','91','92','93','94','95','96','97','98','99','100']
     Project_ID_header=['Project_ID']
     error_Project_ID_header=['Project_ID','status']
+    dailypledges_target_file= path_a+'/target/dailypledges.csv'
+    dailycomments_target_file=path_a+'/target/dailycomments.csv'
+    dailybackers_target_file=path_a+'/target/dailybackers.csv'
+    (dailypledges_dict_list,dailycomments_dict_list,dailybackers_dict_list,error_ID)=dict_list
 
     writeacsvprocess(dailypledges_target_file,common_headers,dailypledges_dict_list)
     writeacsvprocess(dailycomments_target_file,common_headers,dailycomments_dict_list)
     writeacsvprocess(dailybackers_target_file,common_headers,dailybackers_dict_list)
     #writeacsvprocess(collected_file,Project_ID_header,collected)
     #print error_ID
-    if error_ID is None:
+    if error_ID == []:
         pass
     else:
         writeacsvprocess(error_file,error_Project_ID_header,error_ID)
@@ -994,10 +1001,10 @@ def inputsetting(status):
 
 
 
-def progress_test(counts,lenfile,speed,w):
+def progress_test((counts,error_counts),lenfile,speed,w):
     bar_length=20
     eta=time.time()+w
-    precent =counts/float(lenfile)
+    precent =(counts+error_counts)/float(lenfile)
 
     ETA=datetime.datetime.fromtimestamp(eta)
     hashes = '#' * int(precent * bar_length)
@@ -1007,6 +1014,7 @@ def progress_test(counts,lenfile,speed,w):
     #sys.stdout.write("\rthis spider has already read %d projects, speed: %.4f/projects" % (counts,f2-f1))
 
     #sys.stdout.write("\rPercent: [%s] %d%%,remaining time: %.4f mins"%(hashes + spaces,precent,w))
+    time.sleep(random.random())
     sys.stdout.flush()
 
 
@@ -1018,7 +1026,7 @@ class ThreadClass(threading.Thread):
     def run(self):
         while 1:
             (rdir) = self.queue.get()
-            total_scan_recognization_regroup_process(rdir)
+            yv=total_scan_recognization_regroup_process(rdir)
             #time.sleep(1/10)
             self.queue.task_done()
 
@@ -1031,15 +1039,19 @@ def daily_data_collection_main(rdirs,y):
         queue.put(rdir)
     queue.join()
 
+def multicoreprocess(rdirs):
+    pool = mp.Pool()
+    #for rdir in rdirs:
+    yv=pool.map(total_scan_recognization_regroup_process,rdirs)
+    return 1
+
+
 def total_scan_recognization_regroup_process(rdir):
-    f1=time.time()
-    global dailypledges_dict_list
-    global dailycomments_dict_list
-    global dailybackers_dict_list
-    global counts,path_a
-    global collected
-    global error_ID,error_file_collected
-    global y,error_counts
+
+    error_di={}
+    dailypledges_short_dict={}
+    dailycomments_short_dict={}
+    dailybackers_short_dict={}
     dailypledges_image_file=rdir['dailypledges']
     dailycomments_image_file=rdir['dailycomments']
     dailybackers_image_file=rdir['dailybackers']
@@ -1050,52 +1062,61 @@ def total_scan_recognization_regroup_process(rdir):
         #saving error project_id
         #print rdir['Project_ID']
 
-        error_ID.append({'Project_ID':rdir['Project_ID'],'status':'Error'})
+        error_di = {'Project_ID':rdir['Project_ID'],'status':'Error'}
 
         move_file=path_a+'/file/%s'%rdir['Project_ID']
 
         shutil.move(move_file,error_file_collected)
-        error_counts+=1
+        #error_counts+=1
 
         #print 'the imag_id = %s error, error has been recorded'%rdir['Project_ID']
     else:
 
+
         dailypledges_short_dict=dailypledges_dailycomments_dailybackers_collection(dailypledges_word,'dailypledges',rdir)
-        if len(list(dailypledges_short_dict))<=105:
-            dailypledges_dict_list.append(dailypledges_short_dict)
-            dailycomments_short_dict=dailypledges_dailycomments_dailybackers_collection(dailycomments_word,'dailycomments',rdir)
-            dailycomments_dict_list.append(dailycomments_short_dict)
-            dailybackers_short_dict=dailypledges_dailycomments_dailybackers_collection(dailybackers_word,'dailybackers',rdir)
-            dailybackers_dict_list.append(dailybackers_short_dict)
+        #if len(list(dailypledges_short_dict))<=105:
+        dailycomments_short_dict=dailypledges_dailycomments_dailybackers_collection(dailycomments_word,'dailycomments',rdir)
+        dailybackers_short_dict=dailypledges_dailycomments_dailybackers_collection(dailybackers_word,'dailybackers',rdir)
             #collected.append({'Project_ID':rdir['Project_ID']})
-            counts+=1
-        else:
-            error_ID.append({'Project_ID':rdir['Project_ID'],'status':'too long'})
+
+        gc.collect()
+    #    else:
+            #error_ID.append({'Project_ID':rdir['Project_ID'],'status':'too long'})
             #saving error project_id
 
-            move_file=path_a+'/file/%s'%rdir['Project_ID']
+    #        move_file=path_a+'/file/%s'%rdir['Project_ID']
 
-            shutil.move(move_file,error_file_collected)
-            error_counts+=1
+    #        shutil.move(move_file,error_file_collected)
+    #        error_counts+=1
 
-        if len(dailypledges_dict_list)>50:
-            savingcsvprocessfordailydata(path_a)
-            dailypledges_dict_list=[]
-            dailycomments_dict_list=[]
-            dailybackers_dict_list=[]
-            #collected=[]
-            error_ID=[]
-            gc.collect()
-        else:
-            pass
-        f2=time.time()
-        w=(lenfile-counts)*(f2-f1)/y
-        progress_test(counts,lenfile,f2-f1,w)
+
+        #f2=time.time()
+        #
         #time.sleep(random.random())
+    result=(dailypledges_short_dict,dailycomments_short_dict,dailybackers_short_dict,error_di)
+    #if error_di == {}:
+    return result
 
+def chunks(item,parts,model='equal_length'):
 
+    lenitem=len(item)
+    if model == 'equal_GAP' or model == 'GAP':
+        n=lenitem//parts
+    elif model == 'equal_length' or model == 'length':
+        n=parts
+    else:
+        n=parts
 
-if __name__ == '__main__':
+    lis=[]
+    #split item by n
+    for i in xrange(0,lenitem,n):
+        if i+n < lenitem:
+            lis.append(item[i:i+n])
+        else:
+            lis.append(item[i:])
+    return lis
+
+def main_multi_core_recognise_process(status):
     global characteristiclibs
     global counts,collected,collected_file
     global error_ID,error_file,error_file_collected
@@ -1104,22 +1125,8 @@ if __name__ == '__main__':
     global dailycomments_dict_list,dailycomments_target_file
     global dailybackers_dict_list,dailybackers_target_file
     global y,error_counts
-    global lenfile
-    queue = Queue.Queue()
-    status=input('setup a status(0-99):')
-    y=input('to choose the number of workers for this tasks:')
-    #y=2
-    mail = input('mail it?(1 or 0):')
-    counts=0
+    global lenfile,cooldown
 
-    if mail ==1:
-        mail_password=input('please enter mail password:')
-    else:
-        pass
-
-    dailypledges_dict_list=[]
-    dailycomments_dict_list=[]
-    dailybackers_dict_list=[]
     #error_ID=[]
 
     dict_path,path_a=inputsetting(status)
@@ -1127,6 +1134,7 @@ if __name__ == '__main__':
     dicttxt=dict_path+'/characteristic.txt'
     dictcsv=dict_path+'/characteristic.csv'
     error_counts=0
+    counts=0
 
     error_file=path_a+'/target/error.csv'
     collected_file=path_a+'/target/collected.csv'
@@ -1141,7 +1149,11 @@ if __name__ == '__main__':
 
 
     tasks_uncleaning=getDirList(path_a+'/file')
-    collected=readacsv(dailypledges_target_file)['Project_ID'].tolist()
+    #print type(tasks_uncleaning[1])
+    collected_str=readacsv(dailypledges_target_file)['Project_ID'].tolist()
+    #print collected_str[1]
+    collected=[float(collected_str[x]) for x in xrange(len(collected_str)) ]
+    #print collected[1]
     #error_list=readacsv(error_file)['Project_ID'].tolist()
     error_list=getDirList(path_a+'/error')
     error_ID=[]
@@ -1151,8 +1163,9 @@ if __name__ == '__main__':
     else:
         pass
 
-    collected=list(set(collected))
-    characteristiclibs=read_characteristic_libs(dictcsv)
+
+    #collected=list(set(collected))
+
 
     #print collected
     #lencollected=len(collected)
@@ -1187,21 +1200,113 @@ if __name__ == '__main__':
     #common_headers=['Project_ID','0','1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18','19','20','21','22','23','24','25','26','27','28','29','30','31','32','33','34','35','36','37','38','39','40','41','42','43','44','45','46','47','48','49','50','51','52','53','54','55','56','57','58','59','60','61','62','63','64','65','66','67','68','69','70','71','72','73','74','75','76','77','78','79','80','81','82','83','84','85','86','87','88','89','90','91','92','93','94','95','96','97','98','99','100']
     gc.enable()
 
-    daily_data_collection_main(rdirs,y)
+
+    #multicoreprocess(rdirs)
+    pool = mp.Pool()
+    rdirs_split = chunks(rdirs,y)
+    common_headers=['Project_ID','0','1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18','19','20',
+                        '21','22','23','24','25','26','27','28','29','30','31','32','33','34','35','36','37','38','39',
+                        '40','41','42','43','44','45','46','47','48','49','50','51','52','53','54','55','56','57','58','59',
+                        '60','61','62','63','64','65','66','67','68','69','70','71','72','73','74','75','76','77','78','79',
+                        '80','81','82','83','84','85','86','87','88','89','90','91','92','93','94','95','96','97','98','99','100']
+
+    for rdir in rdirs_split:
+        #print type(ridr)
+        f1=time.time()
+        results=pool.map(total_scan_recognization_regroup_process,rdir)
+        dailypledges_dict_list=[]
+        dailycomments_dict_list=[]
+        dailybackers_dict_list=[]
+        error_ID=[]
+        for (dailypledges_short_dict,dailycomments_short_dict,dailybackers_short_dict,error_di) in results:
+            if set(list(dailypledges_short_dict))<set(common_headers):
+                dailypledges_dict_list.append(dailypledges_short_dict)
+                dailycomments_dict_list.append(dailycomments_short_dict)
+                dailybackers_dict_list.append(dailybackers_short_dict)
+            else:
+                error_di={'Project_ID':dailypledges_short_dict['Project_ID'],'status':'too long'}
+                move_file=path_a+'/file/%s'%dailypledges_short_dict['Project_ID']
+                shutil.move(move_file,error_file_collected)
+            if error_di !={}:
+                error_ID.append(error_di)
+                error_counts+=1
+            else:
+                counts+=1
+    #if len(dailypledges_dict_list)>50:
+        if dailypledges_dict_list !=[]:
+            dict_list=(dailypledges_dict_list,dailycomments_dict_list,dailybackers_dict_list,error_ID)
+            savingcsvprocessfordailydata(path_a,dict_list)
+        else:
+            pass
+        #collected=[]
+
+        time.sleep(random.random()*(y/50)+1)
+
+
+
+        f2=time.time()
+        w=(lenfile-(counts+error_counts))*(f2-f1)/y
+        progress_test((counts,error_counts),lenfile,f2-f1,w)
+
+def recursionprocess(status):
+
+    if type(status)== tuple :
+        print 'enter multi-target collection model(multi-core)'
+        for x in xrange(len(status)):
+            print 'collect %s part'%status[x]
+            main_multi_core_recognise_process(status[x])
+
+    elif type(status)== int:
+        print 'Enterring single-target collection model (multi-core)'
+        #print 'Please enter following info.'
+        main_multi_core_recognise_process(status)
+
+        #print status
+
+
+
+if __name__ == '__main__':
+    global characteristiclibs
+    global counts,collected,collected_file
+    global error_ID,error_file,error_file_collected
+    global path_a
+    global dailypledges_dict_list,dailypledges_target_file
+    global dailycomments_dict_list,dailycomments_target_file
+    global dailybackers_dict_list,dailybackers_target_file
+    global y,error_counts
+    global lenfile,cooldown
+    #queue = Queue.Queue()
+    status=input('setup a status(0-99):')
+    y=input('to choose the number of workers/parts for this tasks(8/50):')
+    #core=input('multicore(0) or multithreading(1):')
+    #y=2
+    #mail = input('mail it?(1 or 0):')
+    mail = 0
+
+    cooldown=0
+    if mail ==1:
+        mail_password=input('please enter mail password:')
+    else:
+        pass
+    #main_multi_core_recognise_process(status)
+    recursionprocess(status)
 
 
 
 
 
 
-    savingcsvprocessfordailydata(path_a)
+
+
+
+
+
+    #savingcsvprocessfordailydata(path_a)
 
     print 'saving process completed'
 
     if mail== 1:
-        dailypledges_target_file= path_a+'/outcome/dailypledges.csv'
-        dailycomments_target_file=path_a+'/outcome/dailycomments.csv'
-        dailybackers_target_file=path_a+'/outcome/dailybackers.csv'
+
         target_files=[dailybackers_target_file,dailycomments_target_file,dailypledges_target_file]
 
 
