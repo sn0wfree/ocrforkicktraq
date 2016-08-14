@@ -21,6 +21,7 @@ import datetime
 import time
 import threading
 import Queue
+import fcntl
 #import celery
 from PIL import Image
 
@@ -56,13 +57,122 @@ def write_a_file(file,item):
         for i in xrange(0,lenitem):
             f.write(item[i])
 
+def get_proxy(proxy_url):
+    import re,urllib2
+    proxies=[]
+    headers={'headers':'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/47.0.2526.106 Safari/537.36'}
 
-def webscraper_png(img_url):
+    #proxy_url='https://www.xicidaili.com/'
+
+    #global proxies
+    try:
+        req = urllib2.Request(proxy_url,None,headers)
+    except:
+        print('connot access proxy information!')
+        return
+    response = urllib2.urlopen(req)
+    html = response.read().decode('utf-8')
+    p = re.compile(r'''<tr\sclass[^>]*>\s+
+                                    <td>.+</td>\s+
+                                    <td>(.*)?</td>\s+
+                                    <td>(.*)?</td>\s+
+                                    <td>(.*)?</td>\s+
+                                    <td>(.*)?</td>\s+
+                                    <td>(.*)?</td>\s+
+                                    <td>(.*)?</td>\s+
+                                </tr>''',re.VERBOSE)
+    proxy_list = p.findall(html)
+    for each_proxy in proxy_list[1:]:
+        if each_proxy[4] == 'HTTP':
+            proxies.append(each_proxy[0]+':'+each_proxy[1])
+    return proxies
+
+
+def change_proxy(proxies):
+    # random choose a proxy
+    proxy = random.choice(proxies)
+    # if available
+    if proxy == None:
+        proxy_support = urllib2.ProxyHandler({})
+    else:
+        proxy_support = urllib2.ProxyHandler({'http':proxy})
+    opener = urllib2.build_opener(proxy_support)
+    opener.addheaders = [('User-Agent',headers['User-Agent'])]
+    urllib2.install_opener(opener)
+    print('auto switching proxy：%s' % ('local' if proxy==None else proxy))
+
+def reset_or_initial_ip_address(reset=False):
+    import os
+    import socket
+    import socks
+    if reset:
+        os.system("""(echo authenticate '"mypassword"'; echo signal newnym; echo quit) | nc localhost 9051""")
+    else:
+        pass
+    socks.set_default_proxy(socks.SOCKS5, "127.0.0.1", 9050)
+    socket.socket = socks.socksocket
+
+
+
+
+
+
+class Lock:
+
+    LOCK_EX = fcntl.LOCK_EX
+
+    def __init__(self, filename='processlock.txt'):
+        self.filename = filename
+        # 如果文件不存在则创建
+        self.handle = open(filename, 'w')
+    def acquire(self):
+        # 给文件上锁
+        fcntl.flock(self.handle, LOCK_EX)
+
+    def release(self):
+        # 文件解锁
+        fcntl.flock(self.handle, fcntl.LOCK_UN)
+
+    def __del__(self):
+        try:
+            self.handle.close()
+            os.remove(self.filename)
+            print 'remove file....'
+        except:
+            pass
+
+
+
+def webscraper_png(img_url,ty):
+    lasturl=img_url.split(ty)[0]
     header={'headers':'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/47.0.2526.106 Safari/537.36'}
+    tor_headers={"Host":"www.kicktraq.com",
+                 "User-Agent":"Mozilla/5.0 (Windows NT 6.1; rv:45.0) Gecko/20100101 Firefox/45.0",
+
+                 "Accept":"image/png,image/*;q=0.8,*/*;q=0.5",
+                 "Accept-Language":"en-US,en;q=0.5",
+                 "Accept-Encoding":"gzip, deflate",
+                 "Referer":lasturl,
+                 "Connection":"keep-alive"
+
+                  }
+
 
     #root_url = 'https://www.kickstarter.com'
     try:
-          img = urllib2.urlopen(img_url).read()
+        req = urllib2.Request(img_url,None,tor_headers)
+        #if 'Response [403]' not in str(req):
+        img = urllib2.urlopen(req).read()
+        '''
+        else:
+            reset_or_initial_ip_address(reset=True)
+            time.sleep(1)
+
+            req = urllib2.Request(img_url,None,tor_headers)
+            img = urllib2.urlopen(req).read()
+
+            img='Error'
+        '''
     except URLError as e:
         if hasattr(e, 'reason'):
             print 'We failed to reach a server.'
@@ -86,7 +196,7 @@ def obtain_kicktraqurl(kickstarterurl):
     if kickstarterurl !='':
         if 'https://www.kickstarter.com' in kickstarterurl:
             kickstarterurl_drophttp=kickstarterurl.split('https://www.kickstarter.com')[1]
-            kicktraq_url = 'http://www.kicktraq.com'+kickstarterurl_drophttp
+            kicktraq_url = 'https://www.kicktraq.com'+kickstarterurl_drophttp
         else:
             kicktraq_url='Error'
     else:
@@ -129,17 +239,30 @@ def scanfolderprocess(rdir):
 
     return f
 
+def getDirList( p ):
+        p = str( p )
+        if p=="":
+              return [ ]
+        #p = p.replace( "/","/")
+        if p[-1] != "/":
+             p = p+"/"
+        a = os.listdir( p )
+        #b = [ x   for x in a if os.path.isdir( p + x ) ]
+
+        b = [ float(x)   for x in a if os.path.isdir( p + x ) ]
+        return b
 
 
 
 def optimalforcollected(savingdatapath_dict,target_file):
-    pool=mp.Pool()
+
     collected_dict={}
     target_dict={}
     search_dict={}
     #print savingdatapath_dict
 
-    collected_ID=pool.map(scanfolderprocess,(savingdatapath_dict,))
+    #collected_ID=pool.map(scanfolderprocess,(savingdatapath_dict,))
+    collected_ID=getDirList(savingdatapath_dict)
     #collected = readacsv(collected_file)
     target=readacsv(target_file)
     target_ID=target['Project_ID']
@@ -213,6 +336,8 @@ def savingallimageforeachproject(key):
         time.sleep(random.uniform(0.1,0.2))
     else:
         time.sleep(3)
+    time.sleep(random.random()*y)
+
     f2 = time.time()
     #totalitem_kicktraqurl=[]
     #collected_key=[]
@@ -237,9 +362,11 @@ def imagetodownloadprocess(collected_key):
     for key in collected_key:
         for i in type_png:
             locals()['kickstraq%s'%i]=generateimageurl(pngfilekicktraqurl[key],i)
-            locals()['img_daily%s'%i]=webscraper_png(locals()['kickstraq%s'%i])
+            locals()['img_daily%s'%i]=webscraper_png(locals()['kickstraq%s'%i],i)
             if locals()['img_daily%s'%i]!='Error':
                 savingimage(locals()['img_daily%s'%i],savingdatapath_dict,key,i)
+
+
     time.sleep(random.random())
 
 
@@ -321,7 +448,7 @@ class ThreadClass(threading.Thread):
             (target) = self.queue.get()
             savingallimageforeachproject(target)
 
-            #time.sleep(1/10)
+            time.sleep(1/10)
             self.queue.task_done()
 
 
@@ -340,6 +467,8 @@ def statuscode():
     elif statuscode ==1001 :
         #raspberry pi
         savingdatapath='/home/pi/datasharing/image'
+    elif statuscode == '2nd':
+        savingdatapath='/home/pi/datasharing/image/errorfor2ndcollectedurl'
     else:
         savingdatapath=input('please input the saving data path:')
     return savingdatapath
@@ -366,6 +495,8 @@ if __name__=='__main__':
     global y
     counts=0
     collected_key=[]
+    pool = mp.Pool()
+
 
 
 
@@ -400,6 +531,7 @@ if __name__=='__main__':
     headers=['Project_ID','url']
     partss=y*10
     #splitfile1=chunks(file1,partss)
+    reset_or_initial_ip_address(reset=False)
 
     print ' image download process begin'
     '''
@@ -415,12 +547,24 @@ if __name__=='__main__':
         t = ThreadClass(queue)
         t.setDaemon(True)
         t.start()
+
     #for splita in splitfile1.values():
     #    f1 = time.time()
     #    partpngfilekicktraqurl={}
     #    for ids in splita:
     #        partpngfilekicktraqurl[ids]=pngfilekicktraqurl[ids]
-    main(pngfilekicktraqurl,y)
+
+    lpngfilekicktraqurl=list(pngfilekicktraqurl)
+    lpngfilekicktraqurl_split = chunks(lpngfilekicktraqurl,y*20)
+    for packet in lpngfilekicktraqurl_split:
+        reset_or_initial_ip_address(reset=True)
+        time.sleep(1)
+        temp_a={}
+        for key in packet:
+            a[key]=pngfilekicktraqurl[key]
+        #results=pool.map(savingallimageforeachproject,packet)
+        main(a,y)
+
 
 
         #if counts % 10 !=0:

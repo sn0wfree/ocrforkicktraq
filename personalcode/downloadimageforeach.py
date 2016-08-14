@@ -12,7 +12,7 @@ import time
 import urllib2
 import requests
 from lxml import etree
-import os,gc,sys,random
+import os,gc,sys
 import pandas as pd
 import unicodecsv
 import csv
@@ -21,29 +21,13 @@ import datetime
 import time
 import threading
 import Queue
+import random
 #import celery
 from PIL import Image
 
 queue = Queue.Queue()
 
-def conn_try_again(max_retries=5,default_retry_delay=1):
-    def _conn_try_again(function):
-        RETRIES = 0
-        #重试的次数
-        count = {"num": RETRIES}
-        def wrapped(*args, **kwargs):
-            try:
-                return function(*args, **kwargs)
-            except Exception, err:
-                if count['num'] < max_retries:
-                    time.sleep(default_retry_delay)
-                    count['num'] += 1
-                    return wrapped(*args, **kwargs)
-                else:
-                    raise Exception(err)
-        return wrapped
-    return _conn_try_again
-
+mutex = threading.Lock()
 
 
 def read_a_file(file):
@@ -56,25 +40,30 @@ def write_a_file(file,item):
         for i in xrange(0,lenitem):
             f.write(item[i])
 
-
+#@celery.task(bind=True,max_retries=5,default_retry_delay=0.1 * 6)
 def webscraper_png(img_url):
-    header={'headers':'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/47.0.2526.106 Safari/537.36'}
-
     #root_url = 'https://www.kickstarter.com'
     try:
           img = urllib2.urlopen(img_url).read()
     except URLError as e:
         if hasattr(e, 'reason'):
+
             print 'We failed to reach a server.'
             print 'Reason: ', e.reason
-            img=''
+            img='Error'
+
+
+
         elif hasattr(e, 'code'):
             print 'The server couldn\'t fulfill the request.'
             print 'Error code: ', e.code
-            img=''
+            img='Error'
+
+
     return img
 
 def savingimage(img,path,project_ID,typefile):
+
     if os.path.isdir(path +'/%s'%project_ID):
         pass
     else:
@@ -112,55 +101,28 @@ def readacsv(file):
         w=pd.read_csv(file,skip_footer=1,engine='python')
     return w
 
-def scanfolderprocess(rdir):
-    fo=os.walk(rdir)
-
-    f=[]
-    for root,subfolder,files in fo:
-        #print root
-        num=root.lstrip(rdir)
-        #print num,type(num)
-        if num !='':
-            number=float(num)
-
-            f.append(number)
-        else:
-            pass
-
-    return f
-
-
-
-
-def optimalforcollected(savingdatapath_dict,target_file):
-    pool=mp.Pool()
+def optimalforcollected(collected_file,target_file):
     collected_dict={}
     target_dict={}
     search_dict={}
-    #print savingdatapath_dict
-
-    collected_ID=pool.map(scanfolderprocess,(savingdatapath_dict,))
-    #collected = readacsv(collected_file)
+    collected = readacsv(collected_file)
     target=readacsv(target_file)
     target_ID=target['Project_ID']
-
-    #collected_ID=collected['Project_ID']
+    collected_ID=collected['Project_ID']
     #print type(target_ID)
     lentargetProject_ID=len(target_ID)
-    #lencollectedProject_ID=list(collected_ID)
-    #for i in xrange(0,lencollectedProject_ID):
-    #    collected_dict[collected['Project_ID'][i]]=collected['url'][i]
+    lencollectedProject_ID=len(collected_ID)
+    for i in xrange(0,lencollectedProject_ID):
+        collected_dict[collected['Project_ID'][i]]=collected['url'][i]
     for i in xrange(0,lentargetProject_ID):
         target_dict[target['Project_ID'][i]]=target['url'][i]
-    #a=listtargetProject_ID)
-    #b=list(collected_dict)
+    a=list(target_dict)
+    b=list(collected_dict)
     #print len(b),len(a),a[1]
-    c=list(set(target_ID)-set(collected_ID))
+    c=list(set(a)-set(b))
     #print len(c),type(c),c[1]
     for key in c:
         search_dict[key]=target_dict[key]
-    pool.close()
-    pool.join()
     return search_dict
 
 def writeacsvprocess(file,headers,item):
@@ -180,57 +142,59 @@ def progress_test(counts,lenfile,speed,w):
     bar_length=20
     eta=time.time()+w
     precent =counts/float(lenfile)
+
     ETA=datetime.datetime.fromtimestamp(eta)
     hashes = '#' * int(precent * bar_length)
     spaces = ' ' * (bar_length - len(hashes))
-    sys.stdout.write("""\r%d%%|%s|read %d projects|Speed: %.4f | ETA: %s """ % (precent*100,hashes + spaces,counts,speed,ETA))
+    sys.stdout.write("""\r%d%%|%s|read %d projects|Speed: %s s/p|ETA: %s """ % (precent*100,hashes + spaces,counts,speed,ETA))
 
+    #sys.stdout.write("\rthis spider has already read %d projects, speed: %.4f/projects" % (counts,f2-f1))
+
+    #sys.stdout.write("\rPercent: [%s] %d%%,remaining time: %.4f mins"%(hashes + spaces,precent,w))
     sys.stdout.flush()
 
 def savingallimageforeachproject(key):
     global collected_file
-    global y
 
     global savingdatapath_dict
     global pngfilekicktraqurl
     global pngfilekickstarterurl
     type_png=['dailypledges.png','dailybackers.png','dailycomments.png']
     headers=['Project_ID','url']
-    global totalitem_kicktraqurl
-    global counts,collected_key
-    f1=time.time()
+
+    global counts
+
+
+
+    f1 = time.time()
     if key !='':
-        w_key=[]
+        totalitem_kicktraqurl=[]
+        collected_key=[]
         item_kicktraqurl={}
         item_kicktraqurl['Project_ID']=key
         item_kicktraqurl['url']=pngfilekickstarterurl[key]
         totalitem_kicktraqurl.append(item_kicktraqurl)
         collected_key.append(key)
-        w_key.append(key)
         counts+=1
-        imagetodownloadprocess(w_key)
-    if counts % 10 !=0:
-        time.sleep(random.uniform(0.1,0.2))
-    else:
-        time.sleep(3)
-    f2 = time.time()
-    #totalitem_kicktraqurl=[]
-    #collected_key=[]
-    w=(len(file1)-counts)*(f2-f1)/y
-    progress_test(counts,len(file1),f2-f1,w)
+        time.sleep(random.uniform(0.1,0.5))
+        writeacsvprocess(collected_file,headers,totalitem_kicktraqurl)
+        imagetodownloadprocess(collected_key)
+        if counts % 50==0:
+            time.sleep(10)
+        else:
+            time.sleep(random.uniform(0,2))
+
 
 
         #print counts,aaa
-        #writeacsvprocess(collected_file,headers,totalitem_kicktraqurl)#totalitem_kicktraqurl is just a name ,but it  just hold all ids and kick_urls
-
-    gc.collect()
-    #time.sleep(random.uniform(0.1,1))
-
-
+        f2 = time.time()
+        w=(len(file1)-counts)*(f2-f1)/y
+        progress_test(counts,len(file1),f2-f1,w)
+        #sys.stdout.write("\rthis spider has already read %d projects, speed: %.4f/projects and remaining time: %.4f mins" % (counts,f2-f1,w))
+        #sys.stdout.write("\rthis spider has already read %d projects" % (counts))
+        #sys.stdout.flush()
+        gc.collect()
     #writeacsvprocess(collected_file,headers,totalitem_kicktraqurl)
-
-
-
 def imagetodownloadprocess(collected_key):
 
     type_png=['dailypledges.png','dailybackers.png','dailycomments.png']
@@ -238,9 +202,7 @@ def imagetodownloadprocess(collected_key):
         for i in type_png:
             locals()['kickstraq%s'%i]=generateimageurl(pngfilekicktraqurl[key],i)
             locals()['img_daily%s'%i]=webscraper_png(locals()['kickstraq%s'%i])
-            if locals()['img_daily%s'%i]!='Error':
-                savingimage(locals()['img_daily%s'%i],savingdatapath_dict,key,i)
-    time.sleep(random.random())
+            savingimage(locals()['img_daily%s'%i],savingdatapath_dict,key,i)
 
 
 
@@ -284,6 +246,7 @@ def sendmailtodelivery(mail_username,mail_password,to_addrs,*attachmentFilePaths
     # Create SMTP Object
     smtp = smtplib.SMTP()
     #print 'connecting ...'
+
     # show the debug log
     smtp.set_debuglevel(1)
 
@@ -326,7 +289,11 @@ class ThreadClass(threading.Thread):
 
 
 def main(pngfilekicktraqurl,y):
-
+    con = threading.Condition()
+    for j in xrange(y):
+        t = ThreadClass(queue)
+        t.setDaemon(True)
+        t.start()
     lpngfilekicktraqurl=list(pngfilekicktraqurl)
     for key in lpngfilekicktraqurl:
         queue.put(key)
@@ -334,57 +301,29 @@ def main(pngfilekicktraqurl,y):
 
 def statuscode():
     statuscode=input('please enter stastus code(0-99):')
-    if statuscode == 1000 :
-        #macbook
+    if statuscode > 99 :
         savingdatapath='/Users/sn0wfree/Dropbox/BitTorrentSync/data/image'
-    elif statuscode ==1001 :
-        #raspberry pi
-        savingdatapath='/home/pi/datasharing/image'
+
     else:
         savingdatapath=input('please input the saving data path:')
     return savingdatapath
 
-
-
-def chunks(item,n):
-    lenitem=len(item)
-    dic={}
-    #split item by n
-    for i in xrange(0,lenitem,n):
-        if i+n < lenitem:
-            dic[i]=item[i:i+n]
-        else:
-            dic[i]=item[i:]
-    return dic
-
-
-
 if __name__=='__main__':
     gc.enable()
     totalitem_kicktraqurl=[]
-    global counts,collected_key
-    global y
+    global counts
     counts=0
     collected_key=[]
-
-
-
     savingdatapath=statuscode()
-
     y=input('please enter the No. of workers(recommadation:4):')
-    mail = input('mail it?(1 or 0):')
 
-    if mail ==1:
-        mail_password=input('please enter mail password:')
-    else:
-        pass
 
     savingdatapath_dict=savingdatapath+'/file'
     target_file= savingdatapath+'/'+'target.csv'
     #target_file=input('please input the target_file path:')
-    #collected_file=savingdatapath+'/'+'collected.csv'
-    pngfilekickstarterurl = optimalforcollected(savingdatapath_dict,target_file)
-    #pngfilekickstarterurl = optimalforcollected(collected_file,target_file)
+    collected_file=savingdatapath+'/'+'collected.csv'
+    pngfilekickstarterurl = optimalforcollected(collected_file,target_file)
+    #someurl='https://www.kickstarter.com/projects/822494155/the-marshall-project-reports-on-life-inside?ref=category_newest'
     pngfilekicktraqurl={}
     for key in pngfilekickstarterurl:
         #change from kcikstarter url to kicktraqurl
@@ -394,41 +333,11 @@ if __name__=='__main__':
     #if want to save all picture , run following line code for saving
     global file1
     file1=list(pngfilekicktraqurl)
-
-    #分割 
-
-    headers=['Project_ID','url']
-    partss=y*10
-    #splitfile1=chunks(file1,partss)
-
     print ' image download process begin'
-    '''
-    because the time of collection for each 50 images  will speed less 0.005s
-    and the store process will spend a lot of time if i follow the previous design,
-    the store action and collection action will conflict each other.
-    furthermore i have tried to use threadlock for handling this conflict,
-    but i find each access the global variable will interrupt every thread,
-    that will ruin and spend more CPU resouce on switching start and stop status
-    thus i choose to split into several small part to handle and save, with loop function to continues
-    '''
-    for j in xrange(y):
-        t = ThreadClass(queue)
-        t.setDaemon(True)
-        t.start()
-    #for splita in splitfile1.values():
-    #    f1 = time.time()
-    #    partpngfilekicktraqurl={}
-    #    for ids in splita:
-    #        partpngfilekicktraqurl[ids]=pngfilekicktraqurl[ids]
+
     main(pngfilekicktraqurl,y)
-
-
-        #if counts % 10 !=0:
-    #time.sleep(random.uniform(1,3))
-        #else:
-         #   time.sleep(5)
-
-
+    #writeacsvprocess(collected_file,headers,totalitem_kicktraqurl)
+    #imagetodownloadprocess(collected_key)
     #creat a intermediary folder
     print 'download pic process completed'
 
@@ -441,21 +350,17 @@ if __name__=='__main__':
 
 
 
-    if mail ==1:
-        target=savingdatapath_dict
-        now =  datetime.datetime.today()
-        pathfile=savingdatapath+ '/%s.zip' % now
-        print 'compress process completed'
-        zipafilefordelivery(pathfile,target)
 
-        print 'begin sending email'
-        mail_username='linlu19920815@gmail.com'
+    #target=
+    #now =  datetime.datetime.today()
+    #pathfile=savingdatapath+ '/%s.zip' % now
+    #print 'compress process completed'
+    #zipafilefordelivery(pathfile,target)
 
-        to_addrs="snowfreedom0815@gmail.com"
-        attachmentFilePaths=pathfile
-        sendmailtodelivery(mail_username,mail_password,to_addrs,attachmentFilePaths)
-        print 'email sent'
-    else:
-        pass
-
-    print "woolaa,woolaa, my job is done. my bed! I'm coming zZZ "
+    #print 'begin sending email'
+    #mail_username='linlu19920815@gmail.com'
+    #mail_password='19920815'
+    #to_addrs="snowfreedom0815@gmail.com"
+    #attachmentFilePaths=pathfile
+    #sendmailtodelivery(mail_username,mail_password,to_addrs,attachmentFilePaths)
+    #print 'email sent'

@@ -298,18 +298,13 @@ def charactersearchprocessforchart(image,characters_dict,opt = True,imagetype='p
 
 def read_whole_line(days):
     for i in xrange(sorted(list(days))):
-        readline=''
+        readaline=''
         if charactersearchprocessforchart(days[i],characters_dict)!='cannot recognize':
             locals()['%sth_letter'%i]=charactersearchprocessforchart(days[i],characters_dict)
-            readline+=locals()['%sth_letter'%i]
+            readaline+=locals()['%sth_letter'%i]
         else:
-            readline+='meet Error'
-    return realine
-
-
-
-
-
+            readaline+='meet Error'
+    return readline
 
 
 def wholedecompositionprocess(image_file,path):
@@ -345,30 +340,7 @@ def wholedecompositionprocess(image_file,path):
         pledged_dailydata[w]=readline
         readline=''
 
-        #return a dict combine with each characters
 
-
-
-
-
-
-
-        #if days[0]==characters_dict['pledgechartdollorsymbol']:
-
-
-
-        #pledged_dailydata[w]=text
-
-    #dailydata5.show()
-    #dailydata6=dailydata[6]
-    #roll.show()
-    #w1=splitcolumtocharacter(dailydata6)
-    #w[0].show()
-    #w1[0].show()
-
-    #w[0].save(path+'chart$.tif')
-
-    #roll_resized.show()
 
 if __name__ == '__main__':
     gc.enable()

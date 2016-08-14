@@ -10,7 +10,7 @@ import requests_cache
 from lxml import etree
 #import cv2
 import numpy as np
-
+'''
 def recogonize_char(image_dict,characteristiclibs):
     left_9=characteristiclibs['9']
     left_2=characteristiclibs['2']
@@ -82,11 +82,11 @@ def recogonize_char(image_dict,characteristiclibs):
                     return 'R'
         elif image_dict['the_number_of_pixel_in_each_column']=left_poundsymbol['the_number_of_pixel_in_each_column']:
                 if image_dict['the_number_of_pixel_in_each_row']=left_poundsymbol['the_number_of_pixel_in_each_row']:
-                    return '£'
+                    return 'gbp'
         elif image_dict['the_number_of_pixel_in_each_column']=left_eurosymbol['the_number_of_pixel_in_each_column']:
                 if image_dict['the_number_of_pixel_in_each_row']=left_eurosymbol['the_number_of_pixel_in_each_row']:
                     return 'eur'
-
+'''
 def image_to_string(img, cleanup=True, plus=''):
     os.popen('tesseract ' + img + ' ' + img + ' ' + plus)
     with open(img + '.txt','r') as txt:
@@ -139,13 +139,10 @@ def chart_confirm(chartimage,type,linewidth='default'):
 def dailypledges_chart_bottom_confirm(image):
     mainchart_coordinate_axis_box=(78,221,920,222)
     mainchart_without_day_box=(78,40,920,218)
-
     mainchart_coordinate_axis = image.crop(mainchart_coordinate_axis_box)
     #mainchart_coordinate_axis.show()
     mainchart_without_day=image.crop(mainchart_without_day_box)
     #mainchart_without_day.show()
-
-
     #mianchart_day_b=chart_confirm(mianchart_day,'day')
     mainchart_coordinate_axis_b=chart_confirm(mainchart_coordinate_axis,'mainchart')
     mainchart_without_day_b=chart_confirm(mainchart_without_day,'mainchart')
@@ -173,9 +170,6 @@ def rollazero(image,box):
     else:
         pass
         #print 0
-
-
-
     return image
 
 def rollallzero(image,dictforimage):
@@ -185,7 +179,6 @@ def rollallzero(image,dictforimage):
     uncounts=0
     #print dictforimage.size[0]
     #print range(dictforimage.size[1])
-
     scale=ImageStat.Stat(dictforimage).count[2]
     #print scale
     aa=(0,171,842,178)
@@ -245,11 +238,11 @@ def cropdailybar(dicts,dicts_axis,image):
     for i in xrange(len(dayslabel)):
         daylabel[dayslabel[i]]=i
     #print a
-    lena=len(a)
+
     counts=0
     line={}
     count=0
-    for i in xrange(0,lena):
+    for i in xrange(0,len(a)):
         if i <(lena-1):
             if  (a[i+1]-a[i])<=2:
                 count+=1
@@ -548,3 +541,4 @@ def characteristicfunction(character_image,setup=False,name='null',path='null'):
     return characteristicvalue
 
 if __name__ == '__main__':
+    pass
