@@ -836,7 +836,7 @@ def scanfolderprocess(rdir):
             #print num
             pass
     return f
-def getDirList( p ):
+def getDirList_float( p ):
         p = str( p )
         if p=="":
               return [ ]
@@ -847,6 +847,18 @@ def getDirList( p ):
         #b = [ x   for x in a if os.path.isdir( p + x ) ]
 
         b = [ float(x)   for x in a if os.path.isdir( p + x ) ]
+        return b
+def getDirList( p ):
+        p = str( p )
+        if p=="":
+              return [ ]
+        #p = p.replace( "/","/")
+        if p[-1] != "/":
+             p = p+"/"
+        a = os.listdir( p )
+        #b = [ x   for x in a if os.path.isdir( p + x ) ]
+
+        b = [ int(x)   for x in a if os.path.isdir( p + x ) ]
         return b
 
 def writeacsvprocess(file,headers,item):
@@ -993,6 +1005,9 @@ def inputsetting(status):
     elif status==13:
         dict_path='/Users/sn0wfree/Documents/imagedatakick/image/dict'
         path_a='/Users/sn0wfree/Documents/imagedatakick/image/file/image13'
+    elif status==1002:
+        dict_path='/Users/sn0wfree/Documents/imagedatakick/image/dict'
+        path_a='/Users/sn0wfree/Documents/imagedatakick/errorfor2ndcollectedurl/2nd'
         #file_path='/Users/sn0wfree/Documents/imagedatakick/image/outcome/image13'
     else:
         dict_path=input('please type in the path of characteristic dict(without name):')
@@ -1183,7 +1198,7 @@ def main_multi_core_recognise_process(status):
     rdirs=[]
     #print type(tasks[0])
     for task in tasks:
-        if type(task)==float:
+        if type(task)==float or type(task)==int:
             temp={}
             dailypledges_image_file=path_a+'/file/%s/dailypledges.png' %task
             dailycomments_image_file=path_a+'/file/%s/dailycomments.png' %task
