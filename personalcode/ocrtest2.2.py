@@ -391,7 +391,7 @@ def read_characteristic_libs(file):
     elif os.path.splitext(file)[1]=='.csv':
         characteristiclibs=read_characteristic_lib_csv(file)
     else:
-        
+
         raise Exception('please type correct file')
     return characteristiclibs
 
